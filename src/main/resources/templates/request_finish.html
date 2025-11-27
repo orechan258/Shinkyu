@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>申請完了</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+        .success-message { background-color: #e6ffe6; border: 1px solid #00cc00; padding: 20px; border-radius: 5px; max-width: 500px; margin: 0 auto; }
+        h1 { color: #007bff; }
+        a { color: #007bff; text-decoration: none; font-weight: bold; }
+        a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="success-message">
+        <h1>✅ 申請が完了しました</h1>
+        <p>リモートワークの申請を承りました。</p>
+        <p>承認者の確認が完了するまでしばらくお待ちください。</p>
+        
+        <p style="margin-top: 25px;">
+            <a th:href="@{/home}">ホーム画面に戻る</a>
+        </p>
+    </div>
+</body>
+</html>

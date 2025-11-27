@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>在宅勤務申請システム</title>
+    <style>
+		html, body {
+        overflow: hidden; 
+        height: 100%;    
+        width: 100%;     
+    }
+        /* レイアウトの修正 */
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center; 
+            min-height: 100vh;
+            margin: 0;
+            padding-top: 50px; 
+            font-family: Arial, sans-serif;
+            background-color: #f8f8f8; 
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 50px; 
+        }
+        
+        /* ボタンコンテナの修正 */
+        .button-container {
+            display: flex;
+            flex-direction: column; 
+            gap: 15px; 
+            width: 300px; 
+        }
+        
+        /* ボタンデザインの修正 */
+        .main-button {
+            padding: 15px 30px;
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #ffffff; 
+            background-color: #5cb85c; 
+            border: 1px solid #4cae4c;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            text-align: center;
+            transition: background-color 0.3s;
+        }
+        .main-button:hover {
+            background-color: #449d44; 
+        }
+        
+        .user-info {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 0.9em;
+            color: #555;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+	<div class="user-info" sec:authorize="isAuthenticated()">
+	    <span>ログイン中: </span>
+	    
+	    <span th:text="${userName}"></span>
+	</div>
+    
+    <h1>在宅勤務申請システム</h1>
+    
+    <div class="button-container">
+        
+        <a th:href="@{/request}" class="main-button" sec:authorize="isAuthenticated()">申請画面</a>
+        
+        <a th:href="@{/check}" class="main-button" sec:authorize="isAuthenticated()">申請確認画面</a>
+        
+        <a th:href="@{/approve}" class="main-button" sec:authorize="hasAnyRole('APPROVER', 'ADMIN')">承認画面</a>
+        
+        <a th:href="@{/admin}" class="main-button" sec:authorize="hasRole('ADMIN')">管理者画面</a>
+        
+        <hr style="width: 100%; border-top: 1px solid #ccc; margin: 10px 0;">
+        
+        <form th:action="@{/logout}" method="post" style="display: block;">
+            <button type="submit" class="main-button" style="background-color: #dc3545; border-color: #dc3545;">ログアウト</button>
+        </form>
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>管理者画面 - 在宅勤務申請システム</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding-top: 50px;
+            font-family: Arial, sans-serif;
+            background-color: #f8f8f8;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 50px;
+        }
+        .button-container {
+            display: flex;
+            flex-direction: column; 
+            gap: 15px; 
+            width: 300px;
+        }
+        .main-button {
+            padding: 15px 30px;
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #ffffff;
+            /* ★修正: 緑系の色に統一 */
+            background-color: #5cb85c; 
+            border: 1px solid #4cae4c;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            text-align: center;
+            transition: background-color 0.3s;
+        }
+        .main-button:hover {
+            /* ★修正: ホバー時の色を緑系に統一 */
+            background-color: #449d44;
+        }
+        .back-button {
+            margin-top: 30px;
+            text-decoration: none;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <h1>管理者画面</h1>
+    
+    <div class="button-container">
+        
+        <a th:href="@{/admin/roles}" class="main-button">権限管理画面</a>
+        
+        <a th:href="@{/admin/csv-export}" class="main-button">CSV出力</a>
+        
+    </div>
+    
+    <a th:href="@{/home}" class="back-button">ホーム画面へ戻る</a>
+
+</body>
+</html>

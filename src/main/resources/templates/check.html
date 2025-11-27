@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>申請状況確認</title>
+    <style>
+        table, th, td { border: 1px solid black; border-collapse: collapse; padding: 8px; }
+        .approved { background-color: #d4edda; } /* 承認済み */
+        .rejected { background-color: #f8d7da; } /* 拒否済み */
+        .pending { background-color: #fff3cd; }  /* 承認待ち */
+    </style>
+</head>
+<body>
+    <h1>申請状況確認画面</h1>
+
+    <h2>1. 承認待ちの申請</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>特認</th> 
+                <th>申請者氏名</th> <th>開始日時</th>
+                <th>終了日時</th>
+                <th>理由</th>
+                <th>半日</th>
+                </tr>
+        </thead>
+        <tbody>
+            <tr th:each="req : ${pendingRequests}" class="pending">
+                <td><span th:if="${req.spApply != null and req.spApply}">✅</span></td>
+                <td th:text="${req.applicantFullName}">山田 太郎</td>
+                <td th:text="${req.startDate} + ' ' + ${req.startTime}">2025-01-01 09:00:00</td>
+                <td th:text="${req.endDate} + ' ' + ${req.endTime}">2025-01-01 17:30:00</td>
+                <td th:text="${req.reason}">私用</td>
+                <td th:text="${req.halfDay == null ? 'N/A' : (req.halfDay ? '　〇　' : '　')}">いいえ</td>
+                </tr>
+        </tbody>
+    </table>
+
+    <h2 style="margin-top: 30px;">2. 承認・拒否済みの申請</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>特認</th>
+                <th>申請者氏名</th> <th>開始日時</th>
+                <th>終了日時</th>
+                <th>理由</th>
+                <th>半日</th>
+                <th>ステータス</th> </tr>
+        </thead>
+        <tbody>
+           <tr th:each="req : ${completedRequests}" 
+               th:class="${req.apply == 1 ? 'approved' : 'rejected'}">
+                <td><span th:if="${req.spApply != null and req.spApply}">✅</span></td>
+                <td th:text="${req.applicantFullName}">山田 太郎</td>
+                <td th:text="${req.startDate} + ' ' + ${req.startTime}">2025-01-02 09:00:00</td>
+                <td th:text="${req.endDate} + ' ' + ${req.endTime}">2025-01-02 17:30:00</td>
+                <td th:text="${req.reason}">体調不良</td>
+                <td th:text="${req.halfDay == null ? 'N/A' : (req.halfDay ? '　〇　' : '　')}">いいえ</td>
+                
+                <td>
+				    <span th:if="${req.apply == 1}">承認されました</span>
+				    <span th:if="${req.apply == 2}">拒否されました</span>
+				</td>
+            </tr>
+        </tbody>
+    </table>
+    
+    <a th:href="@{/home}">ホーム画面に戻る</a>
+
+</body>
+</html>
