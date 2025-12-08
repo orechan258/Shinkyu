@@ -16,7 +16,8 @@ import com.example.demo.entity.Request;
 import com.example.demo.entity.User;
 import com.example.demo.repository.UserRepository;
 import com.example.demo.service.ApplicationService;
-import com.example.demo.service.RequestDetailDto; // ★DTOをインポート
+import com.example.demo.service.RequestDetailDto;
+import com.example.demo.service.UserDetailDto;
 
 @Controller
 public class ApplicationController {
@@ -55,7 +56,7 @@ public class ApplicationController {
         return "request_finish";
     }
     
-    // --- 申請機能 (/request) ---
+    // --- 申請機能 ---
     
     @GetMapping("/request")
     public String request(Model model) {
@@ -79,7 +80,7 @@ public class ApplicationController {
         return "redirect:/finish";
     }
     
-    // --- 申請確認機能 (/check) - DTO利用で氏名表示 ---
+    // --- 申請確認機能 (/check) ---
     
     @GetMapping("/check")
     public String checkRequest(Model model, Principal principal) {
@@ -89,7 +90,7 @@ public class ApplicationController {
         
         String currentUserId = principal.getName();
         
-        // ★Serviceから氏名付きのDTOリストを取得
+        // 氏名結合済みのDTOリストを取得
         List<RequestDetailDto> allUserRequestsWithNames = applicationService.findMyRequestsWithNames(currentUserId);
         
         // DTOリストを分割
@@ -116,7 +117,7 @@ public class ApplicationController {
         }
         String approverUserId = principal.getName();
         
-        // グループでフィルタリングされた申請リストを取得
+        // グループでフィルタリングされた申請リストを取得 (閲覧制限)
         List<Request> allRequests = applicationService.findAllRequestsByGroup(approverUserId); 
 
         // 特認ソート
@@ -160,7 +161,7 @@ public class ApplicationController {
 
     @GetMapping("/admin/roles")
     public String roleHome(Model model, @RequestParam(required = false) String search) {
-        List<User> list;
+        List<UserDetailDto> list; // List<User> ではなく List<UserDetailDto> を使用
         
         if (search != null && !search.trim().isEmpty()) {
             list = applicationService.searchUsers(search);
@@ -186,7 +187,7 @@ public class ApplicationController {
         return "redirect:/admin/roles"; 
     }
     
-    @PostMapping("/admin/roles/save") // 権限の一括保存機能
+    @PostMapping("/admin/roles/save")
     public String saveAllRoles(
             @RequestParam(name = "approverStatus", required = false) List<String> approverList,
             @RequestParam(name = "adminStatus", required = false) List<String> adminList) {
@@ -195,4 +196,6 @@ public class ApplicationController {
 
         return "redirect:/admin/roles";
     }
+    
+    
 }
