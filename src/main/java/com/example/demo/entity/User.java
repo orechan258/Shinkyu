@@ -1,110 +1,165 @@
 package com.example.demo.entity;
 
-import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-
 import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
+import jakarta.persistence.Entity; // Spring Boot 3.x以降は jakarta.persistence を使用
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
+/**
+ * データベースの 'user' テーブルとマッピングされるJPAエンティティクラス。
+ */
 @Entity
 @Table(name = "app_user") // データベースのテーブル名
 public class User {
 
-    @Id
-    @Column(name = "user_id", length = 10)
-    private String userId;
 
-    @Column(name = "group_id")
-    private Integer groupId; // 所属グループID (user_group テーブルを参照)
+    // --- DBのカラム ---
+	@Id
+    @Column(name = "user_id", unique = true, nullable = false)
+    private String userId; // ユーザーID (業務キー)
 
-    @Column(name = "last_name", length = 20)
-    private String lastName;
+    @Column(name = "last_name", nullable = false)
+    private String lastName; // 氏名（姓）
 
-    @Column(name = "first_name", length = 20)
-    private String firstName;
+    @Column(name = "first_name", nullable = false)
+    private String firstName; // 氏名（名）
 
-    @Column(name = "password", length = 60)
-    private String password; // BCryptハッシュ値
+    @Column(name = "department_name")
+    private String departmentName; // 所属部署
 
-    @Column(name = "is_approver")
-    private Boolean isApprover = false; // 承認者フラグ
+    @Column(name = "group_name")
+    private String groupName; // 所属グループ
 
+    @Column(name = "password", nullable = false, length = 60) // カラム名を 'password' に変更
+    private String password;
+
+    @Column(name = "must_change_password")
+    private boolean mustChangePassword; // 初回ログイン時強制変更フラグ
+ // 【追加】権限を示すDBカラムを想定したフィールド
     @Column(name = "is_admin")
-    private Boolean isAdmin = false; // 管理者フラグ
+    private boolean admin; // 管理者フラグ
+    
+    @Column(name = "is_approver")
+    private boolean approver; // 承認者フラグ
+    
+    private Integer groupId; // 所属グループID
+    
+    // --- コンストラクタ（JPAは引数なしのコンストラクタを要求します） ---
+    public User() {}
 
-    @Column(name = "joining_date")
-    private LocalDate joiningDate;
+    // --- Getter and Setter ---
 
-    @Column(name = "role", length = 50)
-    private String role; // 役割 (例: リーダー, チーフ)
 
-    // --- コンストラクタ ---
 
-    public User() {
-        // デフォルトコンストラクタ (JPA必須)
+    // ユーザーID
+    public String getUserId() {
+        return userId;
     }
 
-    // --- Spring Securityに必要な権限取得メソッド ---
-
-    /**
-     * Spring Securityが認証後に使用する権限リストを取得します。
-     * 権限フラグに基づいて、"ROLE_" を接頭辞として付与します。
-     */
-    public Collection<? extends GrantedAuthority> getAuthorities() {
-        List<GrantedAuthority> authorities = new ArrayList<>();
-        
-        // 1. 管理者権限
-        if (this.isAdmin != null && this.isAdmin) {
-            authorities.add(new SimpleGrantedAuthority("ROLE_ADMIN"));
-        }
-        
-        // 2. 承認者権限
-        if (this.isApprover != null && this.isApprover) {
-            authorities.add(new SimpleGrantedAuthority("ROLE_APPROVER"));
-        }
-        
-        // 3. 全ての認証ユーザーに共通の権限 (必須ではないが便利)
-        authorities.add(new SimpleGrantedAuthority("ROLE_USER"));
-
-        return authorities;
+    public void setUserId(String userId) {
+        this.userId = userId;
     }
 
-    // --- Getter と Setter ---
+    // 氏名（姓）
+    public String getLastName() {
+        return lastName;
+    }
 
-    // ID, Group, Name, Password (UserDetailsServiceで使用)
-    public String getUserId() { return userId; }
-    public void setUserId(String userId) { this.userId = userId; }
-    
-    public Integer getGroupId() { return groupId; }
-    public void setGroupId(Integer groupId) { this.groupId = groupId; }
-    
-    public String getLastName() { return lastName; }
-    public void setLastName(String lastName) { this.lastName = lastName; }
-    
-    public String getFirstName() { return firstName; }
-    public void setFirstName(String firstName) { this.firstName = firstName; }
-    
-    public String getPassword() { return password; }
-    public void setPassword(String password) { this.password = password; }
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
+    }
 
-    // 権限フラグ (トグル処理で使用)
-    public Boolean getIsApprover() { return isApprover; }
-    public void setIsApprover(Boolean isApprover) { this.isApprover = isApprover; }
-    
-    public Boolean getIsAdmin() { return isAdmin; }
-    public void setIsAdmin(Boolean isAdmin) { this.isAdmin = isAdmin; }
+    // 氏名（名）
+    public String getFirstName() {
+        return firstName;
+    }
 
-    // その他
-    public LocalDate getJoiningDate() { return joiningDate; }
-    public void setJoiningDate(LocalDate joiningDate) { this.joiningDate = joiningDate; }
+    public void setFirstName(String firstName) {
+        this.firstName = firstName;
+    }
+
+    // 所属部署
+    public String getDepartmentName() {
+        return departmentName;
+    }
+
+    public void setDepartmentName(String departmentName) {
+        this.departmentName = departmentName;
+    }
+
+    // 所属グループ
+    public String getGroupName() {
+        return groupName;
+    }
+
+    public void setGroupName(String groupName) {
+        this.groupName = groupName;
+    }
+
+    // パスワードハッシュ
+    public String getPassword() { // Spring Securityの規約 (UserDetails) に合わせる
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    // 強制変更フラグ (boolean型のGetter)
+    public boolean isMustChangePassword() {
+        return mustChangePassword;
+    }
+
+    public void setMustChangePassword(boolean mustChangePassword) {
+        this.mustChangePassword = mustChangePassword;
+    }
     
-    public String getRole() { return role; }
-    public void setRole(String role) { this.role = role; }
+ // 【追加】UserDetailsServiceImplで参照されるゲッター
+    public boolean isAdmin() {
+        return admin;
+    }
+
+    public void setAdmin(boolean admin) {
+        this.admin = admin;
+    }
+
+    public boolean isApprover() {
+        return approver;
+    }
+
+    public void setApprover(boolean approver) {
+        this.approver = approver;
+    }
+    
+    public Integer getGroupId() {
+        return groupId;
+    }
+
+    public void setGroupId(Integer groupId) {
+        this.groupId = groupId;
+    }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
 }

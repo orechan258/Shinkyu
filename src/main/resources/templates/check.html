@@ -5,7 +5,46 @@
     <title>申請状況確認</title>
     <link rel="stylesheet" type="text/css" th:href="@{/css/style.css}">
     <style>
-        /* ... (テーブル固有のスタイル) ... */
+        /* --- タブメニューの基本スタイル --- */
+        .tab-menu {
+            display: flex;
+            border-bottom: 2px solid #ccc;
+            margin-bottom: 20px;
+        }
+        .tab-button {
+            padding: 10px 20px;
+            cursor: pointer;
+            background-color: #f1f1f1;
+            border: 1px solid #ccc;
+            border-bottom: none;
+            margin-right: 5px;
+            border-top-left-radius: 6px;
+            border-top-right-radius: 6px;
+            transition: background-color 0.2s;
+            font-weight: bold;
+        }
+        .tab-button.active {
+            background-color: white;
+            border-color: #ccc;
+            border-bottom: 2px solid white; /* タブの下線と被せて浮かせる */
+            margin-bottom: -2px; /* 線の太さ分浮かせる */
+            color: #3498db;
+        }
+        .tab-content {
+            display: none;
+            padding: 10px 0;
+            border-top: 2px solid #ccc;
+            margin-top: -2px;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        
+        /* --- テーブル固有のスタイル (簡略化) --- */
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        thead { background-color: #34495e; color: white; }
+        .expired { background-color: #fdd; } /* 期限切れを赤で強調 */
     </style>
 </head>
 <body>
@@ -25,37 +64,116 @@
             </form>
         </div>
     </div>
-    <h1>申請状況確認画面</h1>
     
-    <h2>1. 承認待ちの申請</h2>
-    <table>
-        <thead>
-            <tr>
-                <th>特認</th> 
-                <th>申請者氏名</th> <th>開始日時</th>
-                <th>終了日時</th>
-                <th>理由</th>
-                <th>半日</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr th:each="req : ${pendingRequests}" class="pending">
-                <td><span th:if="${req.spApply != null and req.spApply}">✅</span></td>
-                <td th:text="${req.applicantFullName}">山田 太郎</td> <td th:text="${req.startDate} + ' ' + ${req.startTime}">2025-01-01 09:00:00</td>
-                <td th:text="${req.endDate} + ' ' + ${req.endTime}">2025-01-01 17:30:00</td>
-                <td th:text="${req.reason}">私用</td>
-                <td th:text="${req.halfDay == null ? 'N/A' : (req.halfDay ? '　〇　' : '　')}">いいえ</td>
-            </tr>
-        </tbody>
-    </table>
+    <h1>申請状況確認画面</h1>
 
+    <div class="tab-menu">
+        <button class="tab-button active" onclick="openTab(event, 'pending')">承認待ち (未確認)</button>
+        <button class="tab-button" onclick="openTab(event, 'completed')">確認済み (承認/却下)</button>
+        <button class="tab-button" onclick="openTab(event, 'expired')">期限切れ</button>
+    </div>
+
+    <div id="pending" class="tab-content active">
+        <h2>承認待ちの申請 (<span th:text="${pendingRequests.size()}">0</span>件)</h2>
+        <table th:if="${!pendingRequests.empty}">
+            <thead>
+                <tr>
+                    <th>特認</th> <th>申請者氏名</th> <th>開始日時</th> <th>終了日時</th> <th>理由</th> <th>半日</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="req : ${pendingRequests}" class="pending">
+                    <td><span th:if="${req.spApply != null and req.spApply}">✅</span></td>
+                    <td th:text="${req.applicantFullName}"></td> 
+                    <td th:text="${req.startDate} + ' ' + ${req.startTime}"></td>
+                    <td th:text="${req.endDate} + ' ' + ${req.endTime}"></td>
+                    <td th:text="${req.reason}"></td>
+                    <td th:text="${req.halfDay == null ? 'N/A' : (req.halfDay ? '　〇　' : '　')}"></td>
+                </tr>
+            </tbody>
+        </table>
+        <div th:if="${pendingRequests.empty}">承認待ちの申請はありません。</div>
+    </div>
+
+    <div id="completed" class="tab-content">
+        <h2>確認済みの申請 (<span th:text="${completedRequests.size()}">0</span>件)</h2>
+        <table th:if="${!completedRequests.empty}">
+            <thead>
+                <tr>
+                    <th>ステータス</th> <th>申請者氏名</th> <th>開始日時</th> <th>終了日時</th> <th>理由</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="req : ${completedRequests}">
+                    <td>
+                        <span th:if="${req.apply == 1}" style="color: green;">✅ 承認済み</span>
+                        <span th:if="${req.apply == 2}" style="color: red;">❌ 却下</span>
+                    </td>
+                    <td th:text="${req.applicantFullName}"></td> 
+                    <td th:text="${req.startDate} + ' ' + ${req.startTime}"></td>
+                    <td th:text="${req.endDate} + ' ' + ${req.endTime}"></td>
+                    <td th:text="${req.reason}"></td>
+                </tr>
+            </tbody>
+        </table>
+        <div th:if="${completedRequests.empty}">確認済みの申請はありません。</div>
+    </div>
+
+    <div id="expired" class="tab-content">
+        <h2>期限切れの申請 (<span th:text="${expiredRequests.size()}">0</span>件)</h2>
+        <table th:if="${!expiredRequests.empty}">
+            <thead>
+                <tr>
+                    <th>特認</th> <th>申請者氏名</th> <th>開始日時</th> <th>終了日時</th> <th>理由</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="req : ${expiredRequests}" class="expired"> 
+                    <td><span th:if="${req.spApply != null and req.spApply}">✅</span></td>
+                    <td th:text="${req.applicantFullName}"></td> 
+                    <td th:text="${req.startDate} + ' ' + ${req.startTime}"></td>
+                    <td th:text="${req.endDate} + ' ' + ${req.endTime}"></td>
+                    <td th:text="${req.reason}"></td>
+                </tr>
+            </tbody>
+        </table>
+        <div th:if="${expiredRequests.empty}">期限切れの申請はありません。</div>
+    </div>
+    
     <a th:href="@{/home}">ホーム画面に戻る</a>
 
     <script>
-	    function toggleMenu() {
-	        const menu = document.getElementById('menuPanel');
-	        menu.classList.toggle('open');
-	    }
+        // ハンバーガーメニューのトグル
+        function toggleMenu() {
+            const menu = document.getElementById('menuPanel');
+            menu.classList.toggle('open');
+        }
+
+        // ★★★ タブ切り替えのJavaScript ★★★
+        function openTab(evt, tabName) {
+            let i, tabcontent, tablinks;
+
+            // すべてのタブコンテンツを非表示にする
+            tabcontent = document.getElementsByClassName("tab-content");
+            for (i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].classList.remove("active");
+            }
+
+            // すべてのタブボタンから active クラスを削除する
+            tablinks = document.getElementsByClassName("tab-button");
+            for (i = 0; i < tablinks.length; i++) {
+                tablinks[i].classList.remove("active");
+            }
+
+            // 現在選択されたタブのコンテンツを表示し、ボタンをアクティブにする
+            document.getElementById(tabName).classList.add("active");
+            evt.currentTarget.classList.add("active");
+        }
+
+        // 初期表示: ページロード時に 'pending' タブを表示
+        document.addEventListener('DOMContentLoaded', () => {
+            // 初期状態ですでに active クラスが付与されているため、JSで再度実行する必要はないことが多い
+        });
 	</script>
 </body>
 </html>

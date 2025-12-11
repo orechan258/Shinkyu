@@ -11,7 +11,6 @@
         .login-container { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); width: 300px; }
         h1 { text-align: center; color: #333; }
 
-        /* ... (フォーム入力欄の固有スタイル) ... */
         input[type="text"] { width: 100%; padding: 10px; margin: 8px 0 16px 0; display: inline-block; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
         button { background-color: #5cb85c; color: white; padding: 14px 20px; margin: 8px 0; border: none; border-radius: 4px; cursor: pointer; width: 100%; }
         .error { color: red; text-align: center; margin-bottom: 10px; }
@@ -38,7 +37,7 @@
             ユーザーIDまたはパスワードが正しくありません。
         </div>
 
-        <form th:action="@{/login}" method="post">
+        <form th:action="@{/login}" method="post"> 
             
             <label for="userId"><b>ユーザーID</b></label>
             <input type="text" placeholder="ユーザーIDを入力" id="userId" name="userId" required>
@@ -64,10 +63,10 @@
                 toggleIcon.classList.replace('fa-eye', 'fa-eye-slash');
             } else {
                 passwordField.type = 'password';
+                toggleIcon.type = 'password';
                 toggleIcon.classList.replace('fa-eye-slash', 'fa-eye');
             }
         }
-        // ★ハンバーガーメニューのJSはログイン画面では不要（アクセス制御により直接表示されるため）
     </script>
 
 </body>

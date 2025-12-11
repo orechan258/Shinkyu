@@ -3,6 +3,7 @@ package com.example.demo.service.impl;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -78,25 +79,21 @@ public class ApplicationServiceImpl implements ApplicationService {
     @Override
     public List<RequestDetailDto> findMyRequestsWithNames(String currentUserId) {
         
-        // 1. 全ての申請データを取得
         List<Request> allRequests = applicationRepository.findAll();
         
-        // 2. ログインユーザーの申請のみをフィルタリング
         List<Request> userRequests = allRequests.stream()
                 .filter(req -> currentUserId.equals(req.getUserId()))
                 .toList();
 
-        // 3. 申請者IDのリストを作成 (Userテーブル検索用。この場合は currentUserId のみ)
         List<String> applicantIds = userRequests.stream()
-                                                .map(Request::getUserId)
-                                                .distinct() // ユーザーIDはcurrentUserId一つのみ
-                                                .toList();
+                                                     .map(Request::getUserId)
+                                                     .distinct() 
+                                                     .toList();
         
-        // 4. ユーザー情報を取得し、Mapに格納 (通常は一つのみ)
-        Map<String, User> userMap = userRepository.findAllById(applicantIds).stream()
+        // 【修正】UserRepositoryに定義したfindAllByUserIdInを使用
+        Map<String, User> userMap = userRepository.findAllByUserIdIn(applicantIds).stream() 
             .collect(Collectors.toMap(User::getUserId, user -> user));
 
-        // 5. RequestをDTOに変換し、氏名を結合
         return userRequests.stream()
             .map(req -> {
                 User applicant = userMap.get(req.getUserId());
@@ -104,7 +101,7 @@ public class ApplicationServiceImpl implements ApplicationService {
                                 ? applicant.getLastName() + " " + applicant.getFirstName()
                                 : "ユーザー情報なし";
 
-                return new RequestDetailDto(req, fullName);
+                return new RequestDetailDto(req, fullName); 
             })
             .toList();
     }
@@ -112,16 +109,16 @@ public class ApplicationServiceImpl implements ApplicationService {
     // --- グループ別申請取得ロジック (閲覧制限) ---
 
     private Integer getApproverGroupId(String userId) {
-        User user = userRepository.findById(userId)
-                        .orElseThrow(() -> new RuntimeException("Approver user not found: " + userId));
-        return user.getGroupId();
+        // 【修正】findByUserIdを使用
+        User user = userRepository.findByUserId(userId)
+                         .orElseThrow(() -> new RuntimeException("Approver user not found: " + userId));
+        // 【修正】Userエンティティに追加したgetGroupId()を使用
+        return user.getGroupId(); 
     }
     
     @Override
     public List<Request> findAllRequestsByGroup(String approverUserId) {
         Integer groupId = getApproverGroupId(approverUserId);
-        
-        // ApplicationRepositoryのカスタムクエリを呼び出してフィルタリング
         return applicationRepository.findByApproverGroupId(groupId); 
     }
 
@@ -143,37 +140,47 @@ public class ApplicationServiceImpl implements ApplicationService {
             .collect(Collectors.toMap(Department::getId, dept -> dept));
 
         return users.stream().map(user -> {
-            UserGroup group = groupMap.get(user.getGroupId());
+            UserGroup group = groupMap.get(user.getGroupId()); // user.getGroupId()の呼び出しはここで解決
             Department department = (group != null) ? deptMap.get(group.getDepartmentId()) : null;
 
             String deptName = (department != null) ? department.getName() : "未所属";
             String groupName = (group != null) ? group.getName() : "未所属";
+            
+            UserDetailDto dto = new UserDetailDto();
+            dto.setUserId(user.getUserId());
+            dto.setLastName(user.getLastName());
+            dto.setFirstName(user.getFirstName());
+            dto.setAdmin(user.isAdmin());
+            dto.setApprover(user.isApprover());
+            dto.setFullName(user.getLastName() + " " + user.getFirstName());
+            dto.setDepartmentName(deptName);
+            dto.setGroupName(groupName);
 
-            return new UserDetailDto(
-                user.getUserId(),
-                user.getLastName(),
-                user.getFirstName(),
-                user.getRole(),
-                deptName,
-                groupName
-            );
+            return dto; 
         }).collect(Collectors.toList());
     }
     
+    // 【実装】ApplicationControllerで使用するためにOptionalで返すメソッド
+    @Override
+    public Optional<UserDetailDto> findUserDetail(String userId) {
+         return userRepository.findByUserId(userId)
+                 .map(user -> combineUsersWithHierarchy(Collections.singletonList(user)).get(0));
+    }
+    
+    // 【実装】抽象メソッドのfindUserDetailByUserIdを実装 (エラー3対応)
     @Override
     public UserDetailDto findUserDetailByUserId(String userId) {
-        List<User> userList = userRepository.findAllById(Collections.singletonList(userId));
-        if (userList.isEmpty()) {
-            throw new RuntimeException("User not found: " + userId);
-        }
-        return combineUsersWithHierarchy(userList).get(0);
+        // findUserDetailを再利用し、値がなければRuntimeExceptionをスローする
+        return findUserDetail(userId)
+                 .orElseThrow(() -> new RuntimeException("User not found: " + userId));
     }
     
     @Override
     @Transactional
     public boolean updatePassword(String userId, String currentPassword, String newPassword) {
-        User user = userRepository.findById(userId)
-                       .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+        // 【修正】findByUserIdを使用
+        User user = userRepository.findByUserId(userId)
+                                 .orElseThrow(() -> new RuntimeException("User not found: " + userId));
 
         if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
             return false;
@@ -181,6 +188,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
+        
         return true;
     }
 
@@ -197,25 +205,29 @@ public class ApplicationServiceImpl implements ApplicationService {
         if (query == null || query.trim().isEmpty()) {
             return printAllUsers();
         }
-        List<User> foundUsers = userRepository.searchByQuery(query.trim());
+        List<User> foundUsers = userRepository.searchByQuery(query.trim()); 
         return combineUsersWithHierarchy(foundUsers);
     }
     
     @Override
     @Transactional
     public void toggleApprover(String userId) {
-        User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found: " + userId));
-        Boolean currentStatus = user.getIsApprover();
-        user.setIsApprover(currentStatus == null || !currentStatus); 
+        // 【修正】findByUserIdを使用
+        User user = userRepository.findByUserId(userId).orElseThrow(() -> new RuntimeException("User not found: " + userId));
+        
+        Boolean currentStatus = user.isApprover(); 
+        user.setApprover(currentStatus == null || !currentStatus);
         userRepository.save(user);
     }
 
     @Override
     @Transactional
     public void toggleAdmin(String userId) {
-        User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found: " + userId));
-        Boolean currentStatus = user.getIsAdmin();
-        user.setIsAdmin(currentStatus == null || !currentStatus); 
+        // 【修正】findByUserIdを使用
+        User user = userRepository.findByUserId(userId).orElseThrow(() -> new RuntimeException("User not found: " + userId));
+        
+        Boolean currentStatus = user.isAdmin();
+        user.setAdmin(currentStatus == null || !currentStatus);
         userRepository.save(user);
     }
     
@@ -226,14 +238,12 @@ public class ApplicationServiceImpl implements ApplicationService {
         final List<String> finalApproverIds = approverIds != null ? approverIds : Collections.emptyList();
         final List<String> finalAdminIds = adminIds != null ? adminIds : Collections.emptyList();
 
-        List<String> allUserIds = userRepository.findAll().stream()
-                                     .map(User::getUserId)
-                                     .toList();
-        
-        // UPDATE SQLの定義
         String sql = "UPDATE app_user SET is_approver = :isApprover, is_admin = :isAdmin WHERE user_id = :userId";
         
-        // 全ユーザーをループし、個別に UPDATE を実行
+        List<String> allUserIds = userRepository.findAll().stream()
+                                           .map(User::getUserId)
+                                           .toList();
+        
         for (String userId : allUserIds) {
             int isApprover = finalApproverIds.contains(userId) ? 1 : 0;
             int isAdmin = finalAdminIds.contains(userId) ? 1 : 0;

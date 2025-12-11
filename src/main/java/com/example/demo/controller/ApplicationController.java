@@ -1,6 +1,8 @@
 package com.example.demo.controller;
 
 import java.security.Principal;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -13,7 +15,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import com.example.demo.entity.Request;
-import com.example.demo.entity.User;
 import com.example.demo.repository.UserRepository;
 import com.example.demo.service.ApplicationService;
 import com.example.demo.service.RequestDetailDto;
@@ -41,11 +42,11 @@ public class ApplicationController {
     public String home(Model model, Principal principal){
         if (principal != null) {
             String userId = principal.getName();
-            Optional<User> userOptional = userRepository.findById(userId); 
+            
+            Optional<UserDetailDto> userDetailOptional = applicationService.findUserDetail(userId);
 
-            userOptional.ifPresent(user -> {
-                String fullName = user.getLastName() + " " + user.getFirstName();
-                model.addAttribute("userName", fullName);
+            userDetailOptional.ifPresent(dto -> {
+                model.addAttribute("userName", dto.getFullName()); 
             });
         }
         return "home";
@@ -66,8 +67,8 @@ public class ApplicationController {
     
     @PostMapping("/request")
     public String submitRequest(
-            Request request,
-            Principal principal) {
+                Request request,
+                Principal principal) {
         
         if (principal != null) {
             request.setUserId(principal.getName());
@@ -88,24 +89,52 @@ public class ApplicationController {
             return "redirect:/"; 
         }
         
-        String currentUserId = principal.getName();
+        // ログインユーザーIDを取得
+        String currentUserId = principal.getName(); 
         
         // 氏名結合済みのDTOリストを取得
         List<RequestDetailDto> allUserRequestsWithNames = applicationService.findMyRequestsWithNames(currentUserId);
         
-        // DTOリストを分割
+        // 現在時刻を取得
+        LocalDateTime now = LocalDateTime.now(); 
+
+        // 1. 承認待ちのリスト (期限切れではない、未確認のもの)
         List<RequestDetailDto> pendingRequests = allUserRequestsWithNames.stream()
-                .filter(req -> req.getApply() == null || req.getApply() == 0)
+                .filter(req -> (req.getApply() == null || req.getApply() == 0) && !isExpiredDto(req, now))
                 .toList();
 
+        // 2. 確認済みのリスト (承認済みまたは却下されたもの)
         List<RequestDetailDto> completedRequests = allUserRequestsWithNames.stream()
                 .filter(req -> req.getApply() != null && (req.getApply() == 1 || req.getApply() == 2))
+                .toList();
+                
+        // 3. 期限切れのリスト (承認待ちステータスだが、終了日時が現在時刻を過ぎているもの)
+        List<RequestDetailDto> expiredRequests = allUserRequestsWithNames.stream()
+                .filter(req -> (req.getApply() == null || req.getApply() == 0) && isExpiredDto(req, now))
                 .toList();
 
         model.addAttribute("pendingRequests", pendingRequests);
         model.addAttribute("completedRequests", completedRequests);
+        model.addAttribute("expiredRequests", expiredRequests); // HTMLタブ用
         
         return "check";
+    }
+    
+    // 期限切れ判定用のヘルパーメソッド (DTO用)
+    private boolean isExpiredDto(RequestDetailDto req, LocalDateTime now) {
+        if (req.getEndDate() == null || req.getEndTime() == null) {
+            return false;
+        }
+        try {
+            // DB保存形式に合わせてフォーマットを指定 (例: YYYY-MM-DD HH:mm:ss)
+            String endDateTimeStr = req.getEndDate() + " " + req.getEndTime();
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            LocalDateTime endDateTime = LocalDateTime.parse(endDateTimeStr, formatter);
+            
+            return endDateTime.isBefore(now);
+        } catch (Exception e) {
+            return false; 
+        }
     }
     
     // --- 承認機能 (/approve) ---
@@ -117,10 +146,13 @@ public class ApplicationController {
         }
         String approverUserId = principal.getName();
         
-        // グループでフィルタリングされた申請リストを取得 (閲覧制限)
+        // グループでフィルタリングされた申請リストを取得 (List<Request>)
         List<Request> allRequests = applicationService.findAllRequestsByGroup(approverUserId); 
 
-        // 特認ソート
+        // 現在時刻を取得
+        LocalDateTime now = LocalDateTime.now(); 
+
+        // 特認ソート: SpApply=Trueを優先
         allRequests.sort(
             Comparator.comparing(
                 Request::getSpApply, 
@@ -128,24 +160,49 @@ public class ApplicationController {
             )
         );
 
+        // 1. 承認待ちのリスト (期限切れではない、未確認のもの)
         List<Request> pendingRequests = allRequests.stream()
-                .filter(req -> req.getApply() == null || req.getApply() == 0)
+                .filter(req -> (req.getApply() == null || req.getApply() == 0) && !isExpiredEntity(req, now))
                 .collect(Collectors.toList());
 
+        // 2. 確認済み (承認/拒否済み) のリスト
         List<Request> approvedRequests = allRequests.stream()
                 .filter(req -> req.getApply() != null && req.getApply() >= 1) 
+                .collect(Collectors.toList());
+            
+        // 3. 期限切れのリスト (承認待ちステータスだが、終了日時が現在時刻を過ぎているもの)
+        List<Request> expiredRequests = allRequests.stream()
+                .filter(req -> (req.getApply() == null || req.getApply() == 0) && isExpiredEntity(req, now))
                 .collect(Collectors.toList());
 
         model.addAttribute("pendingRequests", pendingRequests);
         model.addAttribute("approvedRequests", approvedRequests);
+        model.addAttribute("expiredRequests", expiredRequests); // HTMLタブ用
 
         return "approve"; 
     }
     
+    // 期限切れ判定用のヘルパーメソッド (Entity用)
+    private boolean isExpiredEntity(Request req, LocalDateTime now) {
+        if (req.getEndDate() == null || req.getEndTime() == null) {
+            return false;
+        }
+        try {
+            // DB保存形式に合わせてフォーマットを指定 (例: YYYY-MM-DD HH:mm:ss)
+            String endDateTimeStr = req.getEndDate() + " " + req.getEndTime();
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            LocalDateTime endDateTime = LocalDateTime.parse(endDateTimeStr, formatter);
+            
+            return endDateTime.isBefore(now);
+        } catch (Exception e) {
+            return false; 
+        }
+    }
+    
     @PostMapping("/approve/action")
     public String handleApprovalAction(
-            @RequestParam Long requestId, 
-            @RequestParam String action) {
+                @RequestParam Long requestId, 
+                @RequestParam String action) {
         
         applicationService.updateApprovalStatus(requestId, "approve".equals(action));
 
@@ -161,7 +218,7 @@ public class ApplicationController {
 
     @GetMapping("/admin/roles")
     public String roleHome(Model model, @RequestParam(required = false) String search) {
-        List<UserDetailDto> list; // List<User> ではなく List<UserDetailDto> を使用
+        List<UserDetailDto> list; 
         
         if (search != null && !search.trim().isEmpty()) {
             list = applicationService.searchUsers(search);
@@ -189,13 +246,11 @@ public class ApplicationController {
     
     @PostMapping("/admin/roles/save")
     public String saveAllRoles(
-            @RequestParam(name = "approverStatus", required = false) List<String> approverList,
-            @RequestParam(name = "adminStatus", required = false) List<String> adminList) {
+                @RequestParam(name = "approverStatus", required = false) List<String> approverList,
+                @RequestParam(name = "adminStatus", required = false) List<String> adminList) {
         
         applicationService.updateAllRoles(approverList, adminList);
 
         return "redirect:/admin/roles";
     }
-    
-    
 }
