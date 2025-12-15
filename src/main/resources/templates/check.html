@@ -77,20 +77,27 @@
         <h2>承認待ちの申請 (<span th:text="${pendingRequests.size()}">0</span>件)</h2>
         <table th:if="${!pendingRequests.empty}">
             <thead>
-                <tr>
-                    <th>特認</th> <th>申請者氏名</th> <th>開始日時</th> <th>終了日時</th> <th>理由</th> <th>半日</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr th:each="req : ${pendingRequests}" class="pending">
-                    <td><span th:if="${req.spApply != null and req.spApply}">✅</span></td>
-                    <td th:text="${req.applicantFullName}"></td> 
-                    <td th:text="${req.startDate} + ' ' + ${req.startTime}"></td>
-                    <td th:text="${req.endDate} + ' ' + ${req.endTime}"></td>
-                    <td th:text="${req.reason}"></td>
-                    <td th:text="${req.halfDay == null ? 'N/A' : (req.halfDay ? '　〇　' : '　')}"></td>
-                </tr>
-            </tbody>
+		    	<tr>
+		        <th>特認</th> <th>申請者氏名</th> <th>開始日時</th> <th>終了日時</th> <th>理由</th> <th>半日</th> <th>アクション</th> </tr>
+			</thead>
+			<tbody>
+			    <tr th:each="req : ${pendingRequests}" class="pending">
+			        <td><span th:if="${req.spApply != null and req.spApply}">✅</span></td>
+			        <td th:text="${req.applicantFullName}">山田 太郎</td> 
+			        <td th:text="${req.startDate} + ' ' + ${req.startTime}">2025-01-01 09:00:00</td>
+			        <td th:text="${req.endDate} + ' ' + ${req.endTime}">2025-01-01 17:30:00</td>
+			        <td th:text="${req.reason}">私用</td>
+			        <td th:text="${req.halfDay == null ? 'N/A' : (req.halfDay ? '　〇　' : '　')}">いいえ</td>
+			        
+			        <td>
+			            <form th:action="@{/check/cancel}" method="post">
+			                <input type="hidden" name="requestId" th:value="${req.requestId}" /> 
+			                <button type="submit" onclick="return confirm('本当にこの申請をキャンセルしますか？');" 
+			                        style="background-color: #e74c3c; color: white; border: none; padding: 5px 10px; cursor: pointer;">キャンセル</button>
+			            </form>
+			        </td>
+			        </tr>
+			</tbody>
         </table>
         <div th:if="${pendingRequests.empty}">承認待ちの申請はありません。</div>
     </div>

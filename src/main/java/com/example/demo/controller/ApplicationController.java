@@ -89,13 +89,11 @@ public class ApplicationController {
             return "redirect:/"; 
         }
         
-        // ログインユーザーIDを取得
         String currentUserId = principal.getName(); 
         
         // 氏名結合済みのDTOリストを取得
         List<RequestDetailDto> allUserRequestsWithNames = applicationService.findMyRequestsWithNames(currentUserId);
         
-        // 現在時刻を取得
         LocalDateTime now = LocalDateTime.now(); 
 
         // 1. 承認待ちのリスト (期限切れではない、未確認のもの)
@@ -115,9 +113,32 @@ public class ApplicationController {
 
         model.addAttribute("pendingRequests", pendingRequests);
         model.addAttribute("completedRequests", completedRequests);
-        model.addAttribute("expiredRequests", expiredRequests); // HTMLタブ用
+        model.addAttribute("expiredRequests", expiredRequests); 
         
         return "check";
+    }
+
+    /**
+     * POST /check/cancel
+     * ユーザーからの申請キャンセルを受け付ける
+     */
+    @PostMapping("/check/cancel")
+    public String cancelRequestAction(@RequestParam Long requestId, Principal principal) {
+        if (principal == null) {
+            return "redirect:/"; // 認証されていない場合はログインへ
+        }
+        String currentUserId = principal.getName();
+        
+        try {
+            // Service層で、このrequestIdがcurrentUserIdの所有物であることを確認してからキャンセル処理を実行
+            applicationService.cancelRequest(requestId, currentUserId);
+        } catch (Exception e) {
+            // エラー処理（例: ログ出力、申請が見つからないなど）
+            // return "redirect:/check?error=cancel_failed";
+        }
+        
+        // キャンセル後、申請確認画面に戻る
+        return "redirect:/check?success=cancelled";
     }
     
     // 期限切れ判定用のヘルパーメソッド (DTO用)
@@ -126,7 +147,6 @@ public class ApplicationController {
             return false;
         }
         try {
-            // DB保存形式に合わせてフォーマットを指定 (例: YYYY-MM-DD HH:mm:ss)
             String endDateTimeStr = req.getEndDate() + " " + req.getEndTime();
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
             LocalDateTime endDateTime = LocalDateTime.parse(endDateTimeStr, formatter);
@@ -146,13 +166,10 @@ public class ApplicationController {
         }
         String approverUserId = principal.getName();
         
-        // グループでフィルタリングされた申請リストを取得 (List<Request>)
         List<Request> allRequests = applicationService.findAllRequestsByGroup(approverUserId); 
 
-        // 現在時刻を取得
         LocalDateTime now = LocalDateTime.now(); 
 
-        // 特認ソート: SpApply=Trueを優先
         allRequests.sort(
             Comparator.comparing(
                 Request::getSpApply, 
@@ -177,7 +194,7 @@ public class ApplicationController {
 
         model.addAttribute("pendingRequests", pendingRequests);
         model.addAttribute("approvedRequests", approvedRequests);
-        model.addAttribute("expiredRequests", expiredRequests); // HTMLタブ用
+        model.addAttribute("expiredRequests", expiredRequests); 
 
         return "approve"; 
     }
@@ -188,7 +205,6 @@ public class ApplicationController {
             return false;
         }
         try {
-            // DB保存形式に合わせてフォーマットを指定 (例: YYYY-MM-DD HH:mm:ss)
             String endDateTimeStr = req.getEndDate() + " " + req.getEndTime();
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
             LocalDateTime endDateTime = LocalDateTime.parse(endDateTimeStr, formatter);

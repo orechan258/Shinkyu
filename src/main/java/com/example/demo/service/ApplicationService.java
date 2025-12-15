@@ -58,4 +58,8 @@ public interface ApplicationService {
     
     /** 部署の全リスト名を取得 (プルダウン用) */
     List<String> getAllDepartmentNames();
+    
+    
+    // 【追加】ユーザーが自分の申請をキャンセルするメソッド
+    void cancelRequest(Long requestId, String userId);
 }

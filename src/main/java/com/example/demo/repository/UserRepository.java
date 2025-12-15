@@ -8,47 +8,57 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
 
-import com.example.demo.entity.User;
+import com.example.demo.entity.User; // User Entityをインポート
 
 @Repository
-public interface UserRepository extends JpaRepository<User, Integer> { 
-    
-    // ユーザーID (業務ID) でユーザーを検索 (Spring Security, Service層で使用)
+public interface UserRepository extends JpaRepository<User, String> { // 主キーの型がIntegerと仮定
+
+    /**
+     * ログイン認証やユーザー情報取得に使用する、業務ID (String) による検索
+     */
     Optional<User> findByUserId(String userId);
 
-    // ユーザーIDリスト (業務ID) で複数のユーザーを検索 (N+1問題回避に有効)
-    List<User> findAllByUserIdIn(List<String> userIds); 
-    
-    // ★★★ 検索メソッド (JPQL) ★★★
-    @Query("SELECT u FROM User u WHERE " +
-           // userId, lastName, firstName のいずれかに部分一致する AND 検索を実行
-           "LOWER(u.userId) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
-           "LOWER(u.lastName) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
-           "LOWER(u.firstName) LIKE LOWER(CONCAT('%', :query, '%'))")
-    List<User> searchByQuery(@Param("query") String query); 
-    
-    // ⚠️ findById(int id) は JpaRepository によって自動提供されるため、ここでは省略します。
-    // 必要であれば、findById(Integer id); と定義することも可能ですが、int型引数はJPAの規約から外れる場合があります。
+    /**
+     * 管理者画面でのユーザー検索に使用する
+     * ユーザーID、姓、名に対する部分一致検索 (OR条件)
+     */
+    List<User> findByUserIdContainingOrLastNameContainingOrFirstNameContaining(
+            String userId, String lastName, String firstName);
+            
+    // ----------------------------------------------------
+    // 以下はカスタム更新/削除クエリの例 (必要に応じて追加)
+    // ----------------------------------------------------
 
     /**
-     * パスワードハッシュを更新します。
-     * @param id パスワードを更新するユーザーの内部ID (int)
-     * @param newHash 新しいパスワードのハッシュ値
+     * パスワード更新用カスタムクエリ (業務IDを使用)
+     * Service層のupdatePasswordメソッドで使用されます。
      */
     @Modifying
-    @Transactional
-    @Query("UPDATE User u SET u.password = :newHash WHERE u.id = :id")
-    void updatePassword(@Param("id") int id, @Param("newHash") String newHash); 
+    @Query("UPDATE User u SET u.password = :newHash, u.mustChangePassword = false WHERE u.userId = :userId")
+    int updatePassword(@Param("userId") String userId, @Param("newHash") String newHash);
 
     /**
-     * パスワード強制変更フラグの状態を更新します。
-     * @param id フラグを更新するユーザーの内部ID (int)
-     * @param flag 新しいフラグの状態 (TRUE/FALSE)
+     * パスワード変更必須フラグを更新するカスタムクエリ
      */
     @Modifying
-    @Transactional
-    @Query("UPDATE User u SET u.mustChangePassword = :flag WHERE u.id = :id")
-    void updateChangeFlag(@Param("id") int id, @Param("flag") boolean flag);
+    @Query("UPDATE User u SET u.mustChangePassword = :flag WHERE u.userId = :userId")
+    int updateMustChangePasswordFlag(@Param("userId") String userId, @Param("flag") boolean flag);
+    
+    // ----------------------------------------------------
+    // 以下はユーザーのグループID関連のカスタムクエリ (必要に応じて追加)
+    // ----------------------------------------------------
+    
+    /**
+     * グループIDによるユーザー検索
+     */
+    List<User> findByGroupId(Integer groupId);
+    
+    // ----------------------------------------------------
+    // その他、Service層が使用するメソッド
+    // ----------------------------------------------------
+    
+    // findById(Integer) -> JpaRepositoryで提供
+    // findAll() -> JpaRepositoryで提供
+    // save(User) -> JpaRepositoryで提供
 }

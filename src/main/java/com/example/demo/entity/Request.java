@@ -8,6 +8,8 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType; // ★importを追加
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 @Entity
@@ -46,6 +48,10 @@ public class Request {
     
     @Column(name = "Apply") // MySQLのCREATE TABLEに合わせて大文字Aを維持
     private Integer Apply;
+    
+    @ManyToOne 
+    @JoinColumn(name = "user_id", insertable = false, updatable = false)
+    private User user;
     
     public Request() {}
     

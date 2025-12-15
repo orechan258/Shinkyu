@@ -1,37 +1,130 @@
 package com.example.demo.service;
 
-import java.time.LocalDate;
-import java.time.LocalTime;
+// DTOのため、Entityのimportは不要
 
-import com.example.demo.entity.Request;
-
-// 申請情報と申請者名を結合してControllerに渡すためのDTO
 public class RequestDetailDto {
-    private final Request request;
-    private final String applicantFullName;
 
-    // コンストラクタ
-    public RequestDetailDto(Request request, String applicantFullName) {
-        this.request = request;
-        this.applicantFullName = applicantFullName;
+    // Request Entityから取得するフィールド
+    private Long requestId;       // 申請ID (主キー)
+    private String userId;        // 申請者ユーザーID
+    private String startDate;     // 開始日
+    private String startTime;     // 開始時刻
+    private String endDate;       // 終了日
+    private String endTime;       // 終了時刻
+    private String reason;        // 理由
+    private boolean halfDay;      // 半日申請フラグ
+    private boolean spApply;      // 特認申請フラグ
+    private Integer apply;        // 承認ステータス (0:未承認, 1:承認, 2:拒否, 3:キャンセルなど)
+    
+    // User Entityから結合して追加するフィールド
+    private String applicantFullName; // 申請者氏名 (姓 + 名)
+
+    // =========================================================
+    // 【エラー解消済み】デフォルトコンストラクタ (ApplicationServiceImplで使用)
+    // =========================================================
+    public RequestDetailDto() {
     }
 
-    // --- Request Entityのフィールドへの委譲 ---
-    // (Thymeleafで ${req.startDate} のようにアクセスできるように、主要フィールドのGetterを定義)
+    // =========================================================
+    // ゲッターとセッター
+    // =========================================================
 
-    public Long getRequestId() { return request.getRequestId(); }
-    public String getUserId() { return request.getUserId(); }
-    public LocalDate getStartDate() { return request.getStartDate(); }
-    public LocalTime getStartTime() { return request.getStartTime(); }
-    public LocalDate getEndDate() { return request.getEndDate(); }
-    public LocalTime getEndTime() { return request.getEndTime(); }
-    public String getReason() { return request.getReason(); }
-    public Boolean getHalfDay() { return request.getHalfDay(); }
-    public Boolean getSpApply() { return request.getSpApply(); }
-    public Integer getApply() { return request.getApply(); }
+    // requestId
+    public Long getRequestId() {
+        return requestId;
+    }
 
-    // --- 新しいフィールド ---
+    public void setRequestId(Long requestId) {
+        this.requestId = requestId;
+    }
+
+    // userId
+    public String getUserId() {
+        return userId;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
+    }
+
+    // startDate
+    public String getStartDate() {
+        return startDate;
+    }
+
+    public void setStartDate(String startDate) {
+        this.startDate = startDate;
+    }
+
+    // startTime
+    public String getStartTime() {
+        return startTime;
+    }
+
+    public void setStartTime(String startTime) {
+        this.startTime = startTime;
+    }
+
+    // endDate
+    public String getEndDate() {
+        return endDate;
+    }
+
+    public void setEndDate(String endDate) {
+        this.endDate = endDate;
+    }
+
+    // endTime
+    public String getEndTime() {
+        return endTime;
+    }
+
+    public void setEndTime(String endTime) {
+        this.endTime = endTime;
+    }
+
+    // reason
+    public String getReason() {
+        return reason;
+    }
+
+    public void setReason(String reason) {
+        this.reason = reason;
+    }
+
+    // halfDay
+    public boolean isHalfDay() {
+        return halfDay;
+    }
+
+    public void setHalfDay(boolean halfDay) {
+        this.halfDay = halfDay;
+    }
+
+    // spApply
+    public boolean isSpApply() {
+        return spApply;
+    }
+
+    public void setSpApply(boolean spApply) {
+        this.spApply = spApply;
+    }
+
+    // apply
+    public Integer getApply() {
+        return apply;
+    }
+
+    public void setApply(Integer apply) {
+        this.apply = apply;
+    }
+
+    // applicantFullName
     public String getApplicantFullName() {
         return applicantFullName;
+    }
+
+    public void setApplicantFullName(String applicantFullName) {
+        this.applicantFullName = applicantFullName;
     }
 }
