@@ -1,52 +1,40 @@
 package com.example.demo.service;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.stereotype.Service;
 
 import com.example.demo.entity.User;
 import com.example.demo.repository.UserRepository;
 
+@Service
 public class UserDetailsServiceImpl implements UserDetailsService {
 
-	private final UserRepository userRepository;
+    private final UserRepository userRepository;
 
-	public UserDetailsServiceImpl(UserRepository userRepository) {
-		this.userRepository = userRepository;
-	}
+    public UserDetailsServiceImpl(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
 
-	// ログイン処理時にSpring Securityが呼び出すメソッド
+    // ログイン処理時にSpring Securityが呼び出すメソッド
+    @Override
+    public UserDetails loadUserByUsername(String userId) throws UsernameNotFoundException {
+        
+        // データベースからユーザーIDで検索
+        User user = userRepository.findByUserId(userId);
 
-	@Override
-	public UserDetails loadUserByUsername(String userId)
-			throws UsernameNotFoundException {
+        if (user == null) {
+            throw new UsernameNotFoundException("User not found with userId: " + userId);
+        }
 
-		System.out.println("★★ loadUserByUsername 呼ばれた: " + userId);
-
-		User user = userRepository.findByUserId(userId)
-				.orElseThrow(() -> new UsernameNotFoundException("ユーザーが見つかりません: " + userId));
-
-		// 権限リスト作成
-		List<String> roles = new ArrayList<>();
-		roles.add("USER"); // 全員共通
-
-		if (Boolean.TRUE.equals(user.getIsAdmin())) {
-			roles.add("ADMIN");
-		}
-
-		if (Boolean.TRUE.equals(user.getIsApprover())) {
-			roles.add("APPROVER");
-		}
-
-		System.out.println("付与される権限: " + roles);
-
-		return org.springframework.security.core.userdetails.User
-				.withUsername(user.getUserId())
-				.password(user.getPassword())
-				.roles(roles.toArray(new String[0])) // ROLE_ は自動付与
-				.build();
-	}
+        // Spring Securityが認識できる UserDetails オブジェクトを作成
+        // ロール（権限）は今回は空 (Collections.emptyList()) としますが、後でisApproverやisAdminを使って実装します。
+        return new org.springframework.security.core.userdetails.User(
+        	    user.getUserId(),
+        	    user.getPassword(),
+        	    // ★修正: 以前は Collections.emptyList() だった部分を、Entityから取得した権限リストに置き換える
+        	    user.getAuthorities() 
+        	);
+    }
 }
