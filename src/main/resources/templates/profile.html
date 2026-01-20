@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>ユーザー情報編集</title>
+    <link rel="stylesheet" type="text/css" th:href="@{/css/style.css}">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    
+    <style>
+        /* UI/UXのためのスタイル */
+        .application-form { 
+            background-color: #ffffff;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 8px rgba(0 0 0 / 10%);
+            width: 100%;
+            max-width: 500px;
+        }
+        .display-row { 
+            display: flex;
+            justify-content: space-between; 
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px dashed #ddd;
+            margin-bottom: 15px;
+        }
+        /* 強度チェックのスタイル */
+        .validation-message p { 
+            margin: 2px 0; 
+            font-size: 0.9em;
+        }
+        .valid { 
+            color: green; 
+            font-weight: bold;
+        }
+        .invalid { 
+            color: red; 
+        }
+        /* パスワード表示切替のためのスタイル */
+        .input-group {
+            position: relative;
+        }
+        .toggle-password {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            font-size: 1.1em;
+            color: #6c757d;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+    
+    <div class="hamburger-menu">
+        <div class="menu-icon" onclick="toggleMenu()">☰</div>
+        <div id="menuPanel" class="menu-panel">
+            <a href="javascript:void(0)" class="close-btn" onclick="toggleMenu()">×</a>
+            <a th:href="@{/profile}" sec:authorize="isAuthenticated()">プロフィール</a>
+            <a th:href="@{/request}" sec:authorize="isAuthenticated()">申請画面</a>
+            <a th:href="@{/check}" sec:authorize="isAuthenticated()">申請確認画面</a>
+            <a th:href="@{/approve}" sec:authorize="hasAnyRole('APPROVER', 'ADMIN')">承認画面</a>
+            <a th:href="@{/admin}" sec:authorize="hasRole('ADMIN')">管理者画面</a>
+            <a th:href="@{/home}">ホームへ戻る</a>
+            <form th:action="@{/logout}" method="post" style="padding: 15px 20px;">
+                <button type="submit" style="width: 100%; background-color: #e74c3c; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer;">ログアウト</button>
+            </form>
+        </div>
+    </div>
+    
+    <div class="application-form">
+        <h1>ユーザー情報</h1>
+
+        <div th:if="${param.success}" class="alert alert-success">
+            <span th:if="${param.success[0] == 'password'}">パスワードが正常に更新されました。</span>
+            <span th:if="${param.success[0] == 'application'}">氏名・部署の変更申請を承りました。承認をお待ちください。</span>
+        </div>
+        <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
+
+        <div class="display-row">
+            <div class="display-content">
+                <span class="form-label">ユーザーID</span>
+                <span class="display-value" th:text="${user.userId}">U12345</span>
+            </div>
+        </div>
+        
+        <div class="display-row">
+            <div class="display-content">
+                <span class="form-label">氏名</span>
+                <span class="display-value" th:text="${user.lastName} + ' ' + ${user.firstName}">山田 太郎</span>
+            </div>
+            <i class="bi bi-pencil edit-icon" data-bs-toggle="modal" data-bs-target="#applicationModal"></i>
+        </div>
+
+        <div class="display-row">
+            <div class="display-content">
+                <span class="form-label">所属部署/グループ</span>
+                <span class="display-value" th:text="${user.departmentName} + ' / ' + ${user.groupName}"></span>
+            </div>
+            <i class="bi bi-pencil edit-icon" data-bs-toggle="modal" data-bs-target="#applicationModal"></i>
+        </div>
+
+        <div class="display-row">
+            <div class="display-content">
+                <span class="form-label">パスワード</span>
+                <span class="display-value" id="maskedPasswordDisplay"></span> 
+            </div>
+            <i class="bi bi-pencil edit-icon" data-bs-toggle="modal" data-bs-target="#passwordModal"></i>
+        </div>
+    </div>
+    
+    <div class="back-link-container">
+        <p><a th:href="@{/home}" class="btn btn-link">ホームに戻る</a></p>
+    </div>
+
+    <div class="modal fade" id="passwordModal" tabindex="-1" aria-labelledby="passwordModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form th:action="@{/profile/password}" method="post">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title" id="passwordModalLabel">パスワードの変更</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+					    <input type="hidden" th:value="${user.userId}" name="userId" />
+					
+					    <label class="form-label">現在のパスワード</label>
+					    <div class="input-group mb-3" style="position: relative;">
+                            <input type="password" class="form-control" id="current-password" name="currentPassword" placeholder="現在のパスワード" required>
+                            <i class="bi bi-eye-slash toggle-password" data-target="current-password" onclick="togglePasswordVisibility(this)"></i>
+                        </div>
+					
+					    <label class="form-label">新しいパスワード</label>
+					    <div class="input-group mb-2" style="position: relative;">
+					        <input type="password" class="form-control" id="new-password" name="newPassword" placeholder="新しいパスワード" required>
+					        <i class="bi bi-eye-slash toggle-password" data-target="new-password" onclick="togglePasswordVisibility(this)"></i>
+					    </div>
+					    
+                        <div id="validation-messages" class="validation-message">
+                            <p id="len-check" class="invalid">最低8文字以上</p>
+                            <p id="upper-check" class="invalid">大文字 (A-Z) を含む</p>
+                            <p id="lower-check" class="invalid">小文字 (a-z) を含む</p>
+                            <p id="symbol-check" class="invalid">記号 (@!#$など) を含む</p>
+                            <p id="match-check" class="invalid">確認用パスワードと一致</p>
+                        </div>
+					    
+					    <label class="form-label mt-3">新しいパスワード（確認）</label>
+					    <div class="input-group" style="position: relative;">
+					        <input type="password" class="form-control" id="confirm-password" placeholder="新しいパスワード（確認）" required>
+					        <i class="bi bi-eye-slash toggle-password" data-target="confirm-password" onclick="togglePasswordVisibility(this)"></i>
+					    </div>
+					</div>
+                    
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                        <button type="submit" id="submit-password" class="btn btn-primary" disabled>変更を保存</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal fade" id="applicationModal" tabindex="-1" aria-labelledby="applicationModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form id="applicationForm" th:action="@{/profile/application}" method="post">
+                    <div class="modal-header bg-warning text-dark">
+                        <h5 class="modal-title" id="applicationModalLabel">氏名・部署の変更申請</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" th:value="${user.userId}" name="userId" />
+                        <p class="text-danger small">これらの変更は承認が必要です。</p>
+                        
+                        <div class="row mb-3">
+                            <div class="col">
+                                <label class="form-label">姓</label>
+                                <input type="text" class="form-control" name="lastName" th:value="${user.lastName}" placeholder="姓" required>
+                            </div>
+                            <div class="col">
+                                <label class="form-label">名</label>
+                                <input type="text" class="form-control" name="firstName" th:value="${user.firstName}" placeholder="名" required>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="newDepartment" class="form-label">新しい部署</label>
+                            <select id="newDepartment" name="newDepartmentName" class="form-select">
+                                <option th:value="${user.departmentName}" th:text="${user.departmentName} + ' (変更なし)'" selected></option>
+                                
+                                <option th:each="dept : ${departmentList}" 
+                                        th:value="${dept}" 
+                                        th:text="${dept}">部署名</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                        <button type="submit" class="btn btn-warning">変更申請を提出</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        
+        function attachPasswordListeners() {
+            const newPasswordInput = document.getElementById('new-password');
+            const confirmPasswordInput = document.getElementById('confirm-password');
+            const passwordModal = document.getElementById('passwordModal');
+            const currentPasswordInput = document.getElementById('current-password');
+
+            newPasswordInput.addEventListener('input', checkPasswordClientSide);
+            confirmPasswordInput.addEventListener('input', checkPasswordClientSide);
+
+            passwordModal.addEventListener('show.bs.modal', function () {
+                newPasswordInput.value = '';
+                confirmPasswordInput.value = '';
+                currentPasswordInput.value = '';
+                checkPasswordClientSide(); 
+            });
+        }
+
+        // --- A. パスワードのマスキング表示関数 (セキュリティ強化のため固定化) ---
+        function maskPasswordDisplay() {
+            // パスワードの先頭文字を表示せず、固定の10個のアスタリスクでマスキングする
+            return '**********'; 
+        }
+
+        // --- B. クライアントサイドでの強度検証フィードバック関数 ---
+        function checkPasswordClientSide() {
+            const newPassword = document.getElementById('new-password').value;
+            const confirmPwd = document.getElementById('confirm-password').value;
+            const submitButton = document.getElementById('submit-password');
+            
+            // 1. 強度チェック
+            const checks = {
+                length: newPassword.length >= 8,
+                upper: /[A-Z]/.test(newPassword),
+                lower: /[a-z]/.test(newPassword),
+                symbol: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(newPassword)
+            };
+            
+            // 2. パスワードの一致チェック
+            const passwordsMatch = (newPassword === confirmPwd) && (confirmPwd !== '');
+
+            // 3. UIフィードバックの更新
+            const updates = {
+                'len-check': checks.length,
+                'upper-check': checks.upper,
+                'lower-check': checks.lower,
+                'symbol-check': checks.symbol,
+                'match-check': passwordsMatch
+            };
+
+            for (const id in updates) {
+                const element = document.getElementById(id);
+                if (element) { // 要素が存在することを確認
+                    if (updates[id]) {
+                        element.className = 'valid';
+                    } else {
+                        element.className = 'invalid';
+                    }
+                }
+            }
+            
+            // 4. ボタンの有効/無効判定
+            const allStrengthChecksPass = Object.values(checks).every(v => v);
+            submitButton.disabled = !(allStrengthChecksPass && passwordsMatch);
+        }
+
+        // --- C. 初期実行 (DOM構築完了後) ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // 1. パスワードのマスキング表示を適用 (引数なしで呼び出す)
+            document.getElementById('maskedPasswordDisplay').textContent = maskPasswordDisplay();
+            
+            // 2. イベントリスナーを設定
+            attachPasswordListeners();
+        });
+
+
+        // --- D. ハンバーガーメニュー関数 (グローバルスコープ) ---
+        function toggleMenu() {
+            const menu = document.getElementById('menuPanel');
+            menu.classList.toggle('open');
+        }
+        
+        /**
+		 * 目玉アイコンがクリックされたときに入力フィールドのtypeを切り替える
+		 */
+		function togglePasswordVisibility(iconElement) {
+		    const targetId = iconElement.getAttribute('data-target');
+		    const inputField = document.getElementById(targetId);
+		
+		    if (inputField.type === 'password') {
+		        inputField.type = 'text';
+		        iconElement.classList.remove('bi-eye-slash');
+		        iconElement.classList.add('bi-eye');
+		    } else {
+		        inputField.type = 'password';
+		        iconElement.classList.remove('bi-eye');
+		        iconElement.classList.add('bi-eye-slash');
+		    }
+		}
+        
+    </script>
+</body>
+</html>
