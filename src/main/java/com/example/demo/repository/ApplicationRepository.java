@@ -10,5 +10,7 @@ import com.example.demo.entity.Request; // Entity名が Request であること�
 
 public interface ApplicationRepository extends JpaRepository<Request, Long> {
 	@Query(value = "SELECT r FROM Request r JOIN User u ON r.userId = u.userId WHERE u.groupId = :groupId")
-    List<Request> findByApproverGroupId(@Param("groupId") Integer groupId);
+	List<Request> findByApproverGroupId(@Param("groupId") Long groupId);
+
+	List<Request> findByApply(Integer apply);
 }
