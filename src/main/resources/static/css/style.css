@@ -147,6 +147,8 @@ legend {
     font-size: 14px;
     transition: all 0.2s;
     background-color: transparent;
+    text-align: center;
+    /* 文字を中央揃え */
 }
 
 .sidebar nav a:hover {
