@@ -47,8 +47,8 @@ public class Request {
 	@Column(name = "Apply") // MySQLのCREATE TABLEに合わせて大文字Aを維持
 	private Integer apply;
 
-	@Column(name = "group_id")
-	private Long groupId;
+	//	@Column(name = "group_id")
+	//	private Long groupId;
 
 	public Request() {
 	}
@@ -134,11 +134,11 @@ public class Request {
 		this.apply = newStatus;
 	}
 
-	public Long getGroupId() {
-		return groupId;
-	}
-
-	public void setGroupId(Long groupId) {
-		this.groupId = groupId;
-	}
+	//	public Long getGroupId() {
+	//		return groupId;
+	//	}
+	//
+	//	public void setGroupId(Long groupId) {
+	//		this.groupId = groupId;
+	//	}
 }
