@@ -12,28 +12,8 @@
 	    <a th:href="@{/profile}" th:text="${userName}"></a>
 	</div>
 	
-	<div class="hamburger-menu">
-	    <div class="menu-icon" onclick="toggleMenu()">☰</div>
-	    
-	    <div id="menuPanel" class="menu-panel">
-	        <a href="javascript:void(0)" class="close-btn" onclick="toggleMenu()">×</a>
-	        
-	        <a th:href="@{/profile}" sec:authorize="isAuthenticated()">プロフィール</a>
-	        
-	        <a th:href="@{/request}" sec:authorize="isAuthenticated()">申請画面</a>
-	        
-	        <a th:href="@{/check}" sec:authorize="isAuthenticated()">申請確認画面</a>
-	        
-	        <a th:href="@{/approve}" sec:authorize="hasAnyRole('APPROVER', 'ADMIN')">承認画面</a>
-	        <a th:href="@{/admin}" sec:authorize="hasRole('ADMIN')">管理者画面</a>
-	        
-	        <a th:href="@{/home}">ホームへ戻る</a>
-	
-	        <form th:action="@{/logout}" method="post" style="padding: 15px 20px;">
-	            <button type="submit" style="width: 100%; background-color: #e74c3c; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer;">ログアウト</button>
-	        </form>
-	    </div>
-	</div>
+	<div th:replace="~{common :: menu}"></div>
+<script th:replace="~{common :: menuScript}"></script>
     <h1>在宅勤務申請システム</h1>
     
     <div class="button-container">

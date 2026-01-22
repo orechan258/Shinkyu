@@ -1,65 +1,83 @@
 package com.example.demo.service;
 
+import java.io.InputStream;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
+import com.example.demo.entity.Department;
+import com.example.demo.entity.ProfileRequest;
 import com.example.demo.entity.Request;
+import com.example.demo.entity.User;
+import com.example.demo.entity.UserGroup;
+
 
 public interface ApplicationService {
     
-    // --- 申請 (Request) 関連 ---
+    // ユーザー情報取得
+    Optional<UserDetailDto> findUserDetail(String userId);
+    UserDetailDto findUserDetailByUserId(String userId);
+    List<UserDetailDto> printAllUsers();
+    List<String> getAllDepartmentNames();
+
     
-    /** 全ての申請を取得 */
+ // ApplicationService.java に追加
+    boolean verifyUser(String userId, String password);
+    void updateUserEmail(String userId, String email);
+    
+    
+    // ユーザー情報取得 (ページネーション対応)
+    Page<UserDetailDto> findAllUsersPaginated(Pageable pageable);
+    
+    // 申請機能
+    Request createNewRequest(Request request);
+    List<RequestDetailDto> findMyRequestsWithNames(String userId);
+    void cancelRequest(Long requestId, String userId);
+
+    // 承認機能
+    List<Request> findAllRequestsByGroup(String approverUserId);
+    void updateApprovalStatus(Long requestId, boolean approved);
     List<Request> findAll();
     
-    /** 新しい申請を作成・保存 */
-    Request createNewRequest(Request request);
-    
-    /** 承認/拒否ステータスを更新 */
-    void updateApprovalStatus(Long requestId, boolean isApproved);
-    
-    /** ログインユーザーの申請履歴を氏名結合DTOとして取得 (check画面用) */
-    List<RequestDetailDto> findMyRequestsWithNames(String currentUserId);
-    
-    /** 閲覧制限付き: 承認者IDを元に、所属グループの申請のみを取得 (approve画面用) */
-    List<Request> findAllRequestsByGroup(String approverUserId); 
-    
-    /**
-     * 【追加】ユーザーIDに基づいて、詳細情報（結合済み氏名など）を持つDTOを取得する。
-     * @param userId 検索対象のユーザーID（業務ID）
-     * @return UserDetailDtoを持つOptional
-     */
-    Optional<UserDetailDto> findUserDetail(String userId);
-
-    // --- ユーザー/権限管理 (User/Role) 関連 ---
-    
-    /** 全ユーザーを階層情報(部署/グループ名)と結合したDTOとして取得 (role画面用) */
-    List<UserDetailDto> printAllUsers();
-    
-    /** 検索クエリに一致するユーザーを階層情報と結合したDTOとして取得 (role画面用) */
-    List<UserDetailDto> searchUsers(String query);
-    
-    /** 管理者権限をトグル */
-    void toggleAdmin(String userId);
-    
-    /** 承認者権限をトグル */
+    // 管理者機能
     void toggleApprover(String userId);
+    void toggleAdmin(String userId);
+    void updateAllRoles(List<String> approverList, List<String> adminList);
+
+    // パスワード機能
+    boolean updatePassword(String userId, String oldPassword, String newPassword);
     
-    /** 権限を一括更新 (JdbcClientで実装) */
-    void updateAllRoles(List<String> approverIds, List<String> adminIds);
-    
-    // --- プロファイル (Profile) 関連 ---
-    
-    /** ユーザーIDに基づき、階層情報と結合したDTOを取得 */
-    UserDetailDto findUserDetailByUserId(String userId);
-    
-    /** 現在のパスワードを確認し、新しいパスワードで更新 */
-    boolean updatePassword(String userId, String currentPassword, String newPassword);
-    
-    /** 部署の全リスト名を取得 (プルダウン用) */
-    List<String> getAllDepartmentNames();
+ // 【追加】絞り込み用の全グループ情報取得
+    List<Department> findAllDepartments(); // ★新規：部署の重複を排除したリスト
+    List<UserGroup> findAllGroups(); 
+
+    // 【追加】絞り込み検索用
+    Page<UserDetailDto> searchUsersPaginated(String search, List<Integer> groupIds, Pageable pageable);
     
     
-    // 【追加】ユーザーが自分の申請をキャンセルするメソッド
-    void cancelRequest(Long requestId, String userId);
+ // ★プロフィール申請を保存するための定義を追加
+    void saveProfileRequest(ProfileRequest req);
+
+    // ★管理者画面で未承認リストを取得するための定義を追加
+    List<ProfileRequest> findPendingProfileRequests();
+
+    // ★承認・却下を実行するための定義を追加
+    void approveProfileRequest(Long requestId, boolean approved);
+    /**
+     * CSVからユーザーを一括登録する
+     */
+    int importUsersFromCsv(InputStream is) throws Exception;
+
+    /**
+     * 個別追加画面からユーザーを登録する
+     */
+    void registerNewUser(User user);
+
+    /**
+     * ユーザーを削除する
+     */
+    void deleteUser(String userId);
+    
 }

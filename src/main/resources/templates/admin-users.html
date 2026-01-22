@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>ユーザーマスタ管理 - 管理者</title>
+    <link rel="stylesheet" type="text/css" th:href="@{/css/style.css}">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <style>
+        /* 横幅は標準的なサイズを維持 */
+        .container { max-width: 1140px; }
+        
+        /* 縦幅：タスクバーに被らないよう、画面高の60%を上限にスクロールさせる */
+        .table-container { 
+            max-height: 60vh; 
+            overflow-y: auto; 
+            border-radius: 8px; 
+            border: 1px solid #dee2e6;
+            background-color: white;
+        }
+        
+        .sticky-top { top: 0; z-index: 10; background-color: #f8f9fa !important; }
+        
+        /* 検索パネル：標準的な余白を確保 */
+        .search-panel { 
+            background: white; 
+            padding: 20px; 
+            border-radius: 12px; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05); 
+            margin-bottom: 1.5rem;
+        }
+
+        /* テーブル内の各行に少しゆとりを持たせる */
+        .table td { vertical-align: middle; padding: 10px 8px; }
+        
+        h1 { font-size: 1.75rem; }
+    </style>
+</head>
+<body class="bg-light">
+	
+<div th:replace="~{common :: menu}"></div>
+<script th:replace="~{common :: menuScript}"></script>
+    <div class="container mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1><i class="bi bi-people-fill me-2"></i>ユーザーマスタ管理</h1>
+            <div>
+                <a th:href="@{/admin/users/add}" class="btn btn-success me-2">
+                    <i class="bi bi-person-plus-fill"></i> 個別追加
+                </a>
+                <button class="btn btn-outline-success me-2" data-bs-toggle="modal" data-bs-target="#csvModal">
+                    <i class="bi bi-file-earmark-arrow-up"></i> CSV一括登録
+                </button>
+                <a th:href="@{/admin}" class="btn btn-secondary">戻る</a>
+            </div>
+        </div>
+
+        <div class="search-panel border">
+            <form method="get" th:action="@{/admin/users}" id="searchForm">
+                <div class="row g-3 align-items-center">
+                    <div class="col-md-5">
+                        <div class="input-group">
+                            <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                            <input type="text" class="form-control" name="search" th:value="${searchQuery}" placeholder="ユーザーID・氏名で検索">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <button type="button" class="btn btn-outline-dark w-100" data-bs-toggle="modal" data-bs-target="#filterModal">
+                            <i class="bi bi-funnel"></i> 部署・グループ絞り込み
+                            <span th:if="${selectedGroupIds != null and !selectedGroupIds.isEmpty()}" class="badge bg-primary" th:text="${selectedGroupIds.size()}"></span>
+                        </button>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-primary w-100">検索実行</button>
+                    </div>
+                    <div class="col-md-2">
+                        <a th:href="@{/admin/users(search='', groupIds='')}" class="btn btn-link text-secondary" th:if="${searchQuery != null or selectedGroupIds != null}">リセット</a>
+                    </div>
+                </div>
+
+                <div class="modal fade" id="filterModal" tabindex="-1">
+                    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">所属フィルタ</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="row g-3">
+                                    <div th:each="dept : ${allDepartments}" class="col-md-6">
+                                        <div class="card h-100 shadow-sm border">
+                                            <div class="card-header py-2 bg-light">
+                                                <input type="checkbox" class="form-check-input dept-checkbox" th:id="'dept-' + ${dept.id}" th:data-dept-id="${dept.id}">
+                                                <label class="fw-bold ms-1" th:for="'dept-' + ${dept.id}" th:text="${dept.name}"></label>
+                                            </div>
+                                            <div class="card-body py-2">
+                                                <div th:each="group : ${allGroups}" th:if="${group.department.id == dept.id}" class="form-check ms-2">
+                                                    <input type="checkbox" name="groupIds" class="form-check-input group-checkbox" 
+                                                           th:data-parent-dept="${dept.id}" th:value="${group.id}" 
+                                                           th:checked="${selectedGroupIds != null and selectedGroupIds.contains(group.id)}">
+                                                    <label class="form-check-label" th:text="${group.name}"></label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="submit" class="btn btn-primary w-100">この条件を適用</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <div th:if="${message}" class="alert alert-success alert-dismissible fade show mb-3" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i><span th:text="${message}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <div class="table-container shadow-sm">
+            <table class="table table-hover mb-0">
+                <thead class="sticky-top border-bottom">
+                    <tr class="table-light">
+                        <th style="width: 15%">ユーザーID</th>
+                        <th style="width: 20%">氏名</th>
+                        <th style="width: 25%">部署 / グループ</th>
+                        <th style="width: 25%">連携メール</th>
+                        <th style="width: 15%" class="text-center">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="user : ${userPage.content}">
+                        <td th:text="${user.userId}" class="fw-bold px-3"></td>
+                        <td th:text="${user.lastName} + ' ' + ${user.firstName}"></td>
+                        <td>
+                            <span class="badge bg-secondary opacity-75" th:text="${user.departmentName}"></span>
+                            <span class="text-muted small ms-1" th:text="${user.groupName}"></span>
+                        </td>
+                        <td>
+                            <span th:if="${user.email}" class="text-primary small"><i class="bi bi-google me-1"></i><span th:text="${user.email}"></span></span>
+                            <span th:unless="${user.email}" class="text-muted small">未連携</span>
+                        </td>
+                        <td class="text-center">
+                            <form th:action="@{/admin/users/delete}" method="post" onsubmit="return confirm('本当に削除しますか？')">
+                                <input type="hidden" name="userId" th:value="${user.userId}">
+                                <button type="submit" class="btn btn-outline-danger btn-sm">
+                                    <i class="bi bi-trash"></i> 削除
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <nav th:if="${userPage.totalPages > 1}" class="mt-4 pb-4">
+            <ul class="pagination justify-content-center">
+                <li class="page-item" th:classappend="${userPage.first ? 'disabled' : ''}">
+                    <a class="page-link" th:href="@{/admin/users(page=${userPage.number - 1}, search=${searchQuery}, groupIds=${selectedGroupIds})}">前へ</a>
+                </li>
+                <li class="page-item active">
+                    <span class="page-link" th:text="${userPage.number + 1}"></span>
+                </li>
+                <li class="page-item" th:classappend="${userPage.last ? 'disabled' : ''}">
+                    <a class="page-link" th:href="@{/admin/users(page=${userPage.number + 1}, search=${searchQuery}, groupIds=${selectedGroupIds})}">次へ</a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+
+    <div class="modal fade" id="csvModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form th:action="@{/admin/users/csv-upload}" method="post" enctype="multipart/form-data">
+                    <div class="modal-header bg-success text-white">
+                        <h5 class="modal-title">CSV一括登録</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body p-4">
+                        <p class="mb-3">
+                            指定のCSVファイルを選択してください。<br>
+                            <small class="text-muted">形式：ID, 姓, 名, 役職, グループID</small>
+                        </p>
+                        <input type="file" name="file" class="form-control" accept=".csv" required>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-success px-4">アップロード</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.dept-checkbox').forEach(deptBox => {
+                deptBox.addEventListener('change', function () {
+                    const deptId = this.getAttribute('data-dept-id');
+                    document.querySelectorAll(`.group-checkbox[data-parent-dept="${deptId}"]`).forEach(groupBox => {
+                        groupBox.checked = this.checked;
+                    });
+                });
+            });
+        });
+    </script>
+</body>
+</html>

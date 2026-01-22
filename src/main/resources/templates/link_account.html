@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>アカウント連携</title>
+    <link rel="stylesheet" type="text/css" th:href="@{/css/style.css}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <style>
+        /* ログイン画面のbodyスタイルを適用 */
+        body { 
+            font-family: Arial, sans-serif; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh; 
+            margin: 0; 
+            background-color: #f4f4f4; 
+        }
+
+        /* ログイン画面のコンテナ幅に合わせつつ、少しだけ高さを許容 */
+        .login-container { 
+            background: white; 
+            padding: 30px; 
+            border-radius: 8px; 
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); 
+            width: 320px; 
+        }
+
+        h1 { 
+            text-align: center; 
+            color: #333; 
+            font-size: 1.5rem; 
+            margin-bottom: 20px; 
+        }
+
+        /* 元のインフォボックスをログイン画面のトーンに調整 */
+        .info-box {
+            background-color: #e7f3ff;
+            color: #0c5460;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            font-size: 0.85rem;
+            line-height: 1.4;
+            border: 1px solid #d1ecf1;
+        }
+
+        input[type="text"],
+        input[type="password"] { 
+            width: 100%; 
+            padding: 10px; 
+            margin: 8px 0 16px 0; 
+            display: inline-block; 
+            border: 1px solid #ccc; 
+            border-radius: 4px; 
+            box-sizing: border-box; 
+        }
+
+        /* 緑のボタンをログイン画面と統一 */
+        button { 
+            background-color: #5cb85c; 
+            color: white; 
+            padding: 12px 20px; 
+            margin: 8px 0; 
+            border: none; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            width: 100%; 
+            font-size: 1rem; 
+        }
+
+        button:hover { 
+            background-color: #4cae4c; 
+        }
+
+        /* キャンセルボタンのスタイル */
+        .btn-cancel {
+            display: block;
+            text-align: center;
+            color: #888;
+            text-decoration: none;
+            font-size: 0.9rem;
+            margin-top: 10px;
+        }
+
+        .btn-cancel:hover {
+            text-decoration: underline;
+        }
+
+        .error { 
+            color: red; 
+            text-align: center; 
+            margin-bottom: 15px; 
+            font-size: 0.9rem; 
+        }
+
+        .password-wrapper { 
+            position: relative; 
+        }
+
+        .toggle-icon { 
+            position: absolute; 
+            top: 18px; 
+            right: 12px; 
+            cursor: pointer; 
+            color: #888; 
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <h1>アカウント連携</h1>
+
+        <div class="info-box">
+            Google認証に成功しました。<br>
+            初回のみ、既存の<b>ユーザーID</b>と<b>パスワード</b>を入力して連携を完了してください。
+        </div>
+
+        <div th:if="${error}" class="error" th:text="${error}"></div>
+
+        <form th:action="@{/link-account}" method="post">
+            
+            <label for="userId"><b>ユーザーID</b></label>
+            <input type="text" placeholder="T12345" id="userId" name="userId" required autofocus>
+
+            <label for="password"><b>パスワード</b></label>
+            <div class="password-wrapper">
+                <input type="password" placeholder="パスワードを入力" id="password" name="password" required>
+                <i id="toggleIcon" class="toggle-icon fas fa-eye" onclick="togglePassword()"></i>
+            </div>
+
+            <button type="submit">連携してログイン</button>
+            <a th:href="@{/}" class="btn-cancel">キャンセル</a>
+        </form>
+    </div>
+
+    <script>
+        function togglePassword() {
+            const passwordField = document.getElementById('password');
+            const toggleIcon = document.getElementById('toggleIcon');
+            if (passwordField.type === 'password') {
+                passwordField.type = 'text';
+                toggleIcon.classList.replace('fa-eye', 'fa-eye-slash');
+            } else {
+                passwordField.type = 'password';
+                toggleIcon.classList.replace('fa-eye-slash', 'fa-eye');
+            }
+        }
+    </script>
+</body>
+</html>

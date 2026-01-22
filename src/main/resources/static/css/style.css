@@ -1,0 +1,332 @@
+/* --- Global Styles --- */
+html,
+body {
+    height: 100%;
+    width: 100%;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: "Meiryo", "Yu Gothic", "Helvetica", sans-serif;
+    background-color: #f0f2f5;
+    color: #333;
+    /* Default is block layout (login page uses this or overrides it) */
+}
+
+/* サイドバーがあるページ用のレイアウト */
+/* サイドバーがあるページ用のレイアウト */
+body.has-sidebar {
+    padding-left: 290px;
+    /* サイドバー(240px) + 余白(50px) */
+    padding-top: 50px;
+    padding-right: 50px;
+    padding-bottom: 50px;
+    overflow-y: auto;
+    box-sizing: border-box;
+}
+
+/* メインコンテンツエリア (汎用) */
+h1 {
+    font-size: 28px;
+    border-bottom: 2px solid #ddd;
+    padding-bottom: 15px;
+    margin-bottom: 30px;
+    color: #444;
+}
+
+/* ボタンコンテナ (home.html向け - 縦並び・中央寄せ) */
+.button-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    max-width: 400px;
+    margin: 0 auto;
+    /* 中央寄せ */
+}
+
+/* home.htmlの各ボタンを少し大きくする */
+.button-container .main-button {
+    width: 100%;
+    /* コンテナ幅いっぱいに */
+    text-align: center;
+    padding: 15px;
+    font-size: 18px;
+}
+
+/* --- コンテンツコンテナ (フラットデザイン・枠線なし) --- */
+.container,
+.application-form,
+.table-container {
+    background-color: transparent;
+    /* 背景色なし（または白でもよいが枠線なし） */
+    border: none;
+    border-radius: 0;
+    padding: 20px;
+    /* パディング少し減らす */
+    margin: 20px auto;
+    box-shadow: none;
+    /* 影を削除してフラットに */
+    max-width: 1000px;
+}
+
+.application-form {
+    background-color: transparent;
+    /* プロフィール画面等も背景透明に */
+    max-width: 600px;
+    /* 少し広げる */
+}
+
+/* フォームの枠線（fieldset）も消す */
+fieldset {
+    border: none;
+    margin: 0;
+    padding: 0;
+}
+
+legend {
+    font-size: 1.2rem;
+    font-weight: bold;
+    border-bottom: 2px solid #5cb85c;
+    /* 区切り線だけ残す */
+    width: 100%;
+    padding-bottom: 5px;
+    margin-bottom: 15px;
+    color: #333;
+}
+
+/* --- サイドバーメニュー (白ベース) --- */
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 240px;
+    height: 100vh;
+    background-color: #ffffff;
+    /* 白ベース */
+    color: #333;
+    /* 文字色は黒系 */
+    display: flex;
+    flex-direction: column;
+    z-index: 1000;
+    overflow-y: auto;
+    border-right: 1px solid #eee;
+    /* 薄い境界線 */
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.02);
+    /* ほんのり影 */
+}
+
+.sidebar-header {
+    background-color: #ffffff;
+    padding: 20px;
+    text-align: center;
+    font-weight: bold;
+    font-size: 1.2em;
+    border-bottom: 1px solid #eee;
+    color: #2c3e50;
+    /* ヘッダー文字色 */
+}
+
+.sidebar nav {
+    flex: 1;
+    padding-top: 20px;
+    /* 上部に少し余白 */
+}
+
+.sidebar nav a {
+    display: block;
+    margin: 8px 15px;
+    /* ボタン同士の隙間と横の余白 (これが「周りの余白」) */
+    padding: 12px 15px;
+    color: #555;
+    text-decoration: none;
+    border-bottom: none;
+    /* 下線は削除 */
+    border-radius: 8px;
+    /* 角丸でボタンっぽく */
+    font-size: 14px;
+    transition: all 0.2s;
+    background-color: transparent;
+}
+
+.sidebar nav a:hover {
+    background-color: #f0f2f5;
+    /* ホバー時は薄いグレー */
+    color: #333;
+    transform: translateX(3px);
+    /* 少し動く */
+}
+
+.sidebar-footer {
+    padding: 20px;
+    border-top: 1px solid #eee;
+}
+
+/* ログアウトボタン */
+.logout-btn {
+    width: 100%;
+    padding: 12px;
+    background-color: #fff;
+    color: #d9534f;
+    border: 1px solid #d9534f;
+    /* 枠線のみ */
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    transition: all 0.3s;
+}
+
+.logout-btn:hover {
+    background-color: #d9534f;
+    color: white;
+}
+
+/* --- ユーザー情報表示 --- */
+.user-info {
+    display: flex;
+    justify-content: flex-end;
+    /* 右寄せ */
+    align-items: center;
+    margin-bottom: 10px;
+    font-size: 0.95rem;
+    color: #555;
+    font-weight: bold;
+}
+
+.user-info a {
+    margin-left: 10px;
+    color: #5cb85c;
+    text-decoration: none;
+    border-bottom: 1px dashed #5cb85c;
+}
+
+.user-info a:hover {
+    color: #449d44;
+}
+
+/* --- ボタンデザイン (モダン・緑系に戻す) --- */
+.main-button,
+.submit-button,
+button {
+    padding: 12px 25px;
+    /* パディングを戻す */
+    font-size: 16px;
+    /* 文字サイズを戻す */
+    font-weight: bold;
+    color: #fff;
+    background-color: #5cb85c;
+    /* 緑色に戻す */
+    border: none;
+    /* 枠線なし */
+    border-radius: 5px;
+    /* 角丸 */
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    transition: background-color 0.3s;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    /* ボタンにも少し影 */
+}
+
+.main-button:hover,
+.submit-button:hover,
+button:hover {
+    background-color: #449d44;
+}
+
+/* テーブルスタイル (少しモダンに) */
+table {
+    width: 100%;
+    border-collapse: separate;
+    /* ボーダー分離（角丸のため） */
+    border-spacing: 0;
+    margin-top: 15px;
+    font-size: 14px;
+    background-color: #fff;
+    border-radius: 8px;
+    /* テーブル全体を角丸に */
+    overflow: hidden;
+    /* 角丸からはみ出さないように */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+th,
+td {
+    border-bottom: 1px solid #eee;
+    padding: 12px 15px;
+    /* パディング少し広めに */
+    text-align: left;
+}
+
+th {
+    background-color: #f8f9fa;
+    /* 薄いグレー */
+    font-weight: bold;
+    color: #555;
+    border-top: none;
+}
+
+td {
+    border-top: none;
+}
+
+tr:last-child td {
+    border-bottom: none;
+}
+
+tr:nth-child(even) {
+    background-color: #fff;
+    /* 偶数行も白ベース、必要なら薄い色 */
+}
+
+tr:hover {
+    background-color: #f1f1f1;
+    /* ホバーアクション */
+}
+
+/* フォーム要素 (モダンに) */
+input[type="text"],
+input[type="date"],
+input[type="time"],
+input[type="password"],
+textarea,
+select {
+    width: 100%;
+    padding: 10px;
+    /* パディング広め */
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    /* 角丸 */
+    font-size: 16px;
+    /* フォント大きく */
+    box-sizing: border-box;
+    margin-bottom: 15px;
+    transition: border-color 0.3s;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+    border-color: #5cb85c;
+    /* フォーカス時に緑 */
+    outline: none;
+}
+
+label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
+    font-size: 14px;
+    color: #333;
+}
+
+/* エラーメッセージ等 */
+.error-msg {
+    color: #c0392b;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+/* --- 旧ハンバーガーメニュー関連の削除 --- */
+/* .hamburger-menu, .menu-icon, .menu-panel などのスタイルは削除済み */

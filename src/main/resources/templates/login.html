@@ -1,73 +1,179 @@
 <!DOCTYPE html>
 <html lang="ja" xmlns:th="http://www.thymeleaf.org">
+
 <head>
-    <meta charset="UTF-8">
-    <title>ログイン画面</title>
-    <link rel="stylesheet" type="text/css" th:href="@{/css/style.css}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    
-    <style>
-        body { font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f4f4f4; }
-        .login-container { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); width: 300px; }
-        h1 { text-align: center; color: #333; }
+	<meta charset="UTF-8">
+	<title>ログイン画面</title>
+	<link rel="stylesheet" type="text/css" th:href="@{/css/style.css}">
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
-        input[type="text"] { width: 100%; padding: 10px; margin: 8px 0 16px 0; display: inline-block; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        button { background-color: #5cb85c; color: white; padding: 14px 20px; margin: 8px 0; border: none; border-radius: 4px; cursor: pointer; width: 100%; }
-        .error { color: red; text-align: center; margin-bottom: 10px; }
+	<style>
+		/* height を 100vh から min-height に変更して、はみ出しを防ぐ */
+		body {
+			font-family: Arial, sans-serif;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			min-height: 100vh;
+			margin: 0;
+			background-color: #f4f4f4;
+		}
 
-        .password-wrapper { position: relative; margin-bottom: 16px; }
-        .password-wrapper input[type="password"],
-        .password-wrapper input[type="text"] { 
-            width: 100%; padding: 10px; padding-right: 40px; margin: 8px 0 0 0;
-            display: inline-block; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;
-        }
-        .toggle-icon {
-            position: absolute; top: 50%; right: 12px;
-            transform: translateY(calc(-50% + 4px)); 
-            cursor: pointer; color: #888; font-size: 1.1em; transition: opacity 0.1s;
-        }
-        .toggle-icon:hover { opacity: 0.5; }
-    </style>
+		.login-container {
+			background: white;
+			padding: 30px;
+			border-radius: 8px;
+			box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+			width: 320px;
+		}
+
+		h1 {
+			text-align: center;
+			color: #333;
+			font-size: 1.5rem;
+			margin-bottom: 20px;
+		}
+
+		input[type="text"],
+		input[type="password"] {
+			width: 100%;
+			padding: 10px;
+			margin: 8px 0 16px 0;
+			display: inline-block;
+			border: 1px solid #ccc;
+			border-radius: 4px;
+			box-sizing: border-box;
+		}
+
+		button {
+			background-color: #5cb85c;
+			color: white;
+			padding: 12px 20px;
+			margin: 8px 0;
+			border: none;
+			border-radius: 4px;
+			cursor: pointer;
+			width: 100%;
+			font-size: 1rem;
+		}
+
+		button:hover {
+			background-color: #4cae4c;
+		}
+
+		.error {
+			color: red;
+			text-align: center;
+			margin-bottom: 15px;
+			font-size: 0.9rem;
+		}
+
+		.password-wrapper {
+			position: relative;
+		}
+
+		.toggle-icon {
+			position: absolute;
+			top: 18px;
+			right: 12px;
+			cursor: pointer;
+			color: #888;
+		}
+
+		/* Googleボタンのスタイル */
+		.google-btn {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			background-color: #fff;
+			color: #757575;
+			border: 1px solid #ddd;
+			padding: 10px;
+			border-radius: 4px;
+			text-decoration: none;
+			margin-top: 15px;
+			font-weight: bold;
+		}
+
+		.google-btn img {
+			width: 18px;
+			margin-right: 10px;
+		}
+
+		.divider {
+			text-align: center;
+			margin: 15px 0;
+			color: #888;
+			position: relative;
+		}
+
+		.divider::before {
+			content: "";
+			position: absolute;
+			top: 50%;
+			left: 0;
+			width: 40%;
+			border-top: 1px solid #ddd;
+		}
+
+		.divider::after {
+			content: "";
+			position: absolute;
+			top: 50%;
+			right: 0;
+			width: 40%;
+			border-top: 1px solid #ddd;
+		}
+	</style>
 </head>
+
 <body>
-    <div class="login-container">
-        <h1>システム ログイン</h1>
+	<div class="login-container">
+		<h1>システム ログイン</h1>
 
-        <div th:if="${param.error}" class="error">
-            ユーザーIDまたはパスワードが正しくありません。
-        </div>
+		<div th:if="${param.linked}" class="alert alert-success"
+			style="color: green; text-align: center; margin-bottom: 10px;">
+			アカウント連携が完了しました。
+		</div>
 
-        <form th:action="@{/login}" method="post"> 
-            
-            <label for="userId"><b>ユーザーID</b></label>
-            <input type="text" placeholder="ユーザーIDを入力" id="userId" name="userId" required>
+		<div th:if="${param.error}" class="error">
+			IDまたはパスワードが正しくありません。
+		</div>
 
-            <label for="password"><b>パスワード</b></label>
-            <div class="password-wrapper">
-                <input type="password" placeholder="パスワードを入力" id="password" name="password" required>
-                
-                <i id="toggleIcon" class="toggle-icon fas fa-eye" onclick="togglePassword()"></i>
-            </div>
+		<form th:action="@{/login}" method="post">
 
-            <button type="submit">ログイン</button>
-        </form>
-    </div>
+			<label for="userId"><b>ユーザーID</b></label>
+			<input type="text" placeholder="ユーザーIDを入力" id="userId" name="userId" required>
 
-    <script>
-        function togglePassword() {
-            const passwordField = document.getElementById('password');
-            const toggleIcon = document.getElementById('toggleIcon');
-            
-            if (passwordField.type === 'password') {
-                passwordField.type = 'text';
-                toggleIcon.classList.replace('fa-eye', 'fa-eye-slash');
-            } else {
-                passwordField.type = 'password';
-                toggleIcon.type = 'password';
-                toggleIcon.classList.replace('fa-eye-slash', 'fa-eye');
-            }
-        }
-    </script>
+			<label for="password"><b>パスワード</b></label>
+			<div class="password-wrapper">
+				<input type="password" placeholder="パスワードを入力" id="password" name="password" required>
+				<i id="toggleIcon" class="toggle-icon fas fa-eye" onclick="togglePassword()"></i>
+			</div>
 
+			<button type="submit">ログイン</button>
+		</form>
+
+		<div class="divider">または</div>
+
+		<a th:href="@{/oauth2/authorization/google}" class="google-btn">
+			Googleでログイン
+		</a>
+	</div>
+
+	<script>
+		function togglePassword() {
+			const passwordField = document.getElementById('password');
+			const toggleIcon = document.getElementById('toggleIcon');
+			if (passwordField.type === 'password') {
+				passwordField.type = 'text';
+				toggleIcon.classList.replace('fa-eye', 'fa-eye-slash');
+			} else {
+				passwordField.type = 'password';
+				toggleIcon.classList.replace('fa-eye-slash', 'fa-eye');
+			}
+		}
+	</script>
 </body>
+
 </html>

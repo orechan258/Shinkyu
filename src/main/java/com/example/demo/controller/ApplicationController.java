@@ -3,11 +3,14 @@ package com.example.demo.controller;
 import java.security.Principal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Comparator;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,7 +21,8 @@ import com.example.demo.entity.Request;
 import com.example.demo.repository.UserRepository;
 import com.example.demo.service.ApplicationService;
 import com.example.demo.service.RequestDetailDto;
-import com.example.demo.service.UserDetailDto;
+
+import jakarta.servlet.http.HttpSession;
 
 @Controller
 public class ApplicationController {
@@ -38,19 +42,132 @@ public class ApplicationController {
         return "login";
     }
     
+ // ApplicationController.java に追加
     @GetMapping("/home")
-    public String home(Model model, Principal principal){
-        if (principal != null) {
-            String userId = principal.getName();
-            
-            Optional<UserDetailDto> userDetailOptional = applicationService.findUserDetail(userId);
-
-            userDetailOptional.ifPresent(dto -> {
-                model.addAttribute("userName", dto.getFullName()); 
-            });
+    public String home(Model model, Authentication authentication, HttpSession session) {
+        if (authentication == null) {
+            return "redirect:/";
         }
-        return "home";
+
+        String userId = null;
+        Object principal = authentication.getPrincipal();
+
+        // 1. Googleログイン（OAuth2User）の場合の処理
+        if (principal instanceof OAuth2User oAuth2User) {
+            String googleEmail = oAuth2User.getAttribute("email");
+            
+            // メアドからDBのユーザーを特定
+            userId = userRepository.findByEmail(googleEmail)
+                    .map(com.example.demo.entity.User::getUserId)
+                    .orElse(null);
+
+            // --- 自動連携（紐付け）ロジック ---
+            String pendingUserId = (String) session.getAttribute("PENDING_LINK_USER_ID");
+            
+            // まだDBにメアドがないが、プロフィール画面から「連携ボタン」を押して来た場合
+            if (userId == null && pendingUserId != null) {
+                // ① DBのemailカラムを更新
+                applicationService.updateUserEmail(pendingUserId, googleEmail);
+                session.removeAttribute("PENDING_LINK_USER_ID");
+
+                // ② DBから最新の権限状態（Admin/Approverフラグ）を取得
+                var userEntity = userRepository.findByUserId(pendingUserId)
+                        .orElseThrow(() -> new RuntimeException("ユーザーが見つかりません: " + pendingUserId));
+
+                // ③ 権限リスト（Authorities）を再構築
+                List<SimpleGrantedAuthority> authorities = new ArrayList<>();
+                authorities.add(new SimpleGrantedAuthority("ROLE_USER"));
+                if (userEntity.isAdmin()) {
+                    authorities.add(new SimpleGrantedAuthority("ROLE_ADMIN"));
+                }
+                if (userEntity.isApprover()) {
+                    authorities.add(new SimpleGrantedAuthority("ROLE_APPROVER"));
+                }
+
+                // ④ 現在のセッション情報を正しい権限で上書き（これで管理者メニューが復活する）
+                UsernamePasswordAuthenticationToken newAuth = 
+                    new UsernamePasswordAuthenticationToken(pendingUserId, null, authorities);
+                SecurityContextHolder.getContext().setAuthentication(newAuth);
+
+                // 連携完了メッセージと共にプロフィールへ戻す
+                return "redirect:/profile?success=google_linked";
+            }
+            
+            // 連携済みだがROLE_GUEST扱いになっている場合のフォールバック（初回ログイン時など）
+            if (userId != null && authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_GUEST"))) {
+                 // ここでも権限を復元してあげると親切（必要に応じて実装）
+            }
+
+        } else {
+            // 通常ログイン（ID/PASS）の場合
+            userId = authentication.getName();
+        }
+
+        // 2. ROLE_GUEST (Googleログインしたが、まだDBにメアドがなく紐付けもしてない人)
+        boolean isGuest = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_GUEST"));
+        
+        if (isGuest && userId == null) {
+            return "redirect:/link-account";
+        }
+
+        // 3. 正常な表示処理（ホーム画面の「山田 太郎 さん、こんにちは」用）
+        if (userId != null) {
+            applicationService.findUserDetail(userId).ifPresent(dto -> {
+                model.addAttribute("userName", dto.getFullName());
+            });
+            return "home";
+        }
+
+        return "redirect:/";
+    }    /**
+     * アカウント紐付け画面の表示
+     */
+    @GetMapping("/link-account")
+    public String linkAccountPage(Authentication authentication) {
+        if (authentication == null) return "redirect:/";
+        
+        // 既に連携済みの人が来たらホームへ戻す
+        boolean isGuest = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_GUEST"));
+        if (!isGuest) {
+            return "redirect:/home";
+        }
+        return "link_account"; 
     }
+
+    /**
+     * アカウント紐付け処理の実行
+     */
+    @PostMapping("/link-account")
+    public String processLinkAccount(
+            @RequestParam String userId,
+            @RequestParam String password,
+            Authentication authentication,
+            Model model) {
+        
+        // OAuth2Userであることを確認してメールアドレスを取得
+        if (!(authentication.getPrincipal() instanceof OAuth2User oAuth2User)) {
+            return "redirect:/";
+        }
+        String email = oAuth2User.getAttribute("email");
+
+        // 1. 入力された既存IDとパスワードが正しいかチェック
+        if (applicationService.verifyUser(userId, password)) {
+            // 2. 正しければDBのユーザーレコードにGoogleメアドを保存
+            applicationService.updateUserEmail(userId, email);
+            
+            // 3. 連携完了。一度ログアウトさせて再ログインさせるのが最も安全
+            return "redirect:/?linked"; 
+        } else {
+            model.addAttribute("error", "ユーザーIDまたはパスワードが正しくありません。");
+            return "link_account";
+        }
+    }
+    
+    
+    	
+    
     
     @GetMapping("/finish")
     public String finish() {
@@ -66,47 +183,69 @@ public class ApplicationController {
     }
     
     @PostMapping("/request")
-    public String submitRequest(
-                Request request,
-                Principal principal) {
+    public String submitRequest(Request request, Authentication authentication) { // PrincipalからAuthenticationに変更
         
-        if (principal != null) {
-            request.setUserId(principal.getName());
+        if (authentication != null) {
+            String userId;
+            // Googleログインか通常ログインかを判定して、DB上の正しい「ユーザーID」を取得する
+            if (authentication.getPrincipal() instanceof OAuth2User oAuth2User) {
+                String email = oAuth2User.getAttribute("email");
+                userId = userRepository.findByEmail(email)
+                        .map(com.example.demo.entity.User::getUserId)
+                        .orElse("GUEST_01"); // 見つからない場合のフォールバック
+            } else {
+                userId = authentication.getName(); // 通常ログイン(ID/PASS)ならそのまま
+            }
+            
+            request.setUserId(userId); // ここで短いID（U12345等）がセットされるのでエラーが消える
         } else {
-            request.setUserId("GUEST_01"); 
+            request.setUserId("GUEST_01");
         }
         
         applicationService.createNewRequest(request);
-
         return "redirect:/finish";
     }
     
     // --- 申請確認機能 (/check) ---
     
     @GetMapping("/check")
-    public String checkRequest(Model model, Principal principal) {
-        if (principal == null) {
+    public String checkRequest(Model model, Authentication authentication) { // PrincipalからAuthenticationに変更
+        if (authentication == null) {
             return "redirect:/"; 
         }
         
-        String currentUserId = principal.getName(); 
+        // --- 正しいユーザーIDを特定するロジック ---
+        String currentUserId;
+        if (authentication.getPrincipal() instanceof OAuth2User oAuth2User) {
+            String email = oAuth2User.getAttribute("email");
+            // DBからメールアドレスをキーにユーザーID (U12345等) を探す
+            currentUserId = userRepository.findByEmail(email)
+                    .map(com.example.demo.entity.User::getUserId)
+                    .orElse(null);
+        } else {
+            currentUserId = authentication.getName(); // 通常ログイン(ID/PASS)の場合
+        }
+
+        if (currentUserId == null) {
+            return "redirect:/";
+        }
         
-        // 氏名結合済みのDTOリストを取得
+        // 正しい業務IDでDBから申請リストを取得
         List<RequestDetailDto> allUserRequestsWithNames = applicationService.findMyRequestsWithNames(currentUserId);
         
         LocalDateTime now = LocalDateTime.now(); 
 
-        // 1. 承認待ちのリスト (期限切れではない、未確認のもの)
+        // 1. 承認待ちのリスト
         List<RequestDetailDto> pendingRequests = allUserRequestsWithNames.stream()
                 .filter(req -> (req.getApply() == null || req.getApply() == 0) && !isExpiredDto(req, now))
                 .toList();
 
-        // 2. 確認済みのリスト (承認済みまたは却下されたもの)
+        // 2. 確認済みのリスト
         List<RequestDetailDto> completedRequests = allUserRequestsWithNames.stream()
                 .filter(req -> req.getApply() != null && (req.getApply() == 1 || req.getApply() == 2))
                 .toList();
                 
-        // 3. 期限切れのリスト (承認待ちステータスだが、終了日時が現在時刻を過ぎているもの)
+        // 3. 期限切れのリスト
         List<RequestDetailDto> expiredRequests = allUserRequestsWithNames.stream()
                 .filter(req -> (req.getApply() == null || req.getApply() == 0) && isExpiredDto(req, now))
                 .toList();
@@ -147,8 +286,9 @@ public class ApplicationController {
             return false;
         }
         try {
+            // DTOはStringで時刻を持つため、DateTimeFormatterが必要
             String endDateTimeStr = req.getEndDate() + " " + req.getEndTime();
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"); // 適切なフォーマットを使用
             LocalDateTime endDateTime = LocalDateTime.parse(endDateTimeStr, formatter);
             
             return endDateTime.isBefore(now);
@@ -157,116 +297,18 @@ public class ApplicationController {
         }
     }
     
-    // --- 承認機能 (/approve) ---
-    
-    @GetMapping("/approve")
-    public String displayApplications(Model model, Principal principal) {
-        if (principal == null) {
-            return "redirect:/";
+
+    // ユーザーID特定用の共通ヘルパーメソッドを追加
+    private String getInternalUserId(Authentication authentication) {
+        if (authentication.getPrincipal() instanceof OAuth2User oAuth2User) {
+            String email = oAuth2User.getAttribute("email");
+            return userRepository.findByEmail(email)
+                    .map(com.example.demo.entity.User::getUserId)
+                    .orElseThrow(() -> new RuntimeException("ユーザーが見つかりません: " + email));
         }
-        String approverUserId = principal.getName();
-        
-        List<Request> allRequests = applicationService.findAllRequestsByGroup(approverUserId); 
+        return authentication.getName(); // 通常ログインの場合
+    }    
+   
 
-        LocalDateTime now = LocalDateTime.now(); 
-
-        allRequests.sort(
-            Comparator.comparing(
-                Request::getSpApply, 
-                Comparator.nullsLast(Boolean::compareTo).reversed()
-            )
-        );
-
-        // 1. 承認待ちのリスト (期限切れではない、未確認のもの)
-        List<Request> pendingRequests = allRequests.stream()
-                .filter(req -> (req.getApply() == null || req.getApply() == 0) && !isExpiredEntity(req, now))
-                .collect(Collectors.toList());
-
-        // 2. 確認済み (承認/拒否済み) のリスト
-        List<Request> approvedRequests = allRequests.stream()
-                .filter(req -> req.getApply() != null && req.getApply() >= 1) 
-                .collect(Collectors.toList());
-            
-        // 3. 期限切れのリスト (承認待ちステータスだが、終了日時が現在時刻を過ぎているもの)
-        List<Request> expiredRequests = allRequests.stream()
-                .filter(req -> (req.getApply() == null || req.getApply() == 0) && isExpiredEntity(req, now))
-                .collect(Collectors.toList());
-
-        model.addAttribute("pendingRequests", pendingRequests);
-        model.addAttribute("approvedRequests", approvedRequests);
-        model.addAttribute("expiredRequests", expiredRequests); 
-
-        return "approve"; 
-    }
     
-    // 期限切れ判定用のヘルパーメソッド (Entity用)
-    private boolean isExpiredEntity(Request req, LocalDateTime now) {
-        if (req.getEndDate() == null || req.getEndTime() == null) {
-            return false;
-        }
-        try {
-            String endDateTimeStr = req.getEndDate() + " " + req.getEndTime();
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-            LocalDateTime endDateTime = LocalDateTime.parse(endDateTimeStr, formatter);
-            
-            return endDateTime.isBefore(now);
-        } catch (Exception e) {
-            return false; 
-        }
-    }
-    
-    @PostMapping("/approve/action")
-    public String handleApprovalAction(
-                @RequestParam Long requestId, 
-                @RequestParam String action) {
-        
-        applicationService.updateApprovalStatus(requestId, "approve".equals(action));
-
-        return "redirect:/approve";
-    }
-
-    // --- 管理者機能 ---
-    
-    @GetMapping("/admin")
-    public String adminHome(){
-        return "admin_home";
-    }
-
-    @GetMapping("/admin/roles")
-    public String roleHome(Model model, @RequestParam(required = false) String search) {
-        List<UserDetailDto> list; 
-        
-        if (search != null && !search.trim().isEmpty()) {
-            list = applicationService.searchUsers(search);
-        } else {
-            list = applicationService.printAllUsers(); 
-        }
-        
-        model.addAttribute("list", list);
-        model.addAttribute("searchQuery", search);
-        
-        return "role"; 
-    }
-    
-    @PostMapping("/user/toggleApprover")
-    public String toggleApprover(@RequestParam("userId") String userId) {
-        applicationService.toggleApprover(userId);
-        return "redirect:/admin/roles"; 
-    }
-    
-    @PostMapping("/user/toggleAdmin")
-    public String toggleAdmin(@RequestParam("userId") String userId) {
-        applicationService.toggleAdmin(userId);
-        return "redirect:/admin/roles"; 
-    }
-    
-    @PostMapping("/admin/roles/save")
-    public String saveAllRoles(
-                @RequestParam(name = "approverStatus", required = false) List<String> approverList,
-                @RequestParam(name = "adminStatus", required = false) List<String> adminList) {
-        
-        applicationService.updateAllRoles(approverList, adminList);
-
-        return "redirect:/admin/roles";
-    }
 }

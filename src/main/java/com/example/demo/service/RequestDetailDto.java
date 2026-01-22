@@ -1,130 +1,60 @@
 package com.example.demo.service;
 
-// DTOのため、Entityのimportは不要
-
 public class RequestDetailDto {
 
     // Request Entityから取得するフィールド
-    private Long requestId;       // 申請ID (主キー)
-    private String userId;        // 申請者ユーザーID
-    private String startDate;     // 開始日
-    private String startTime;     // 開始時刻
-    private String endDate;       // 終了日
-    private String endTime;       // 終了時刻
-    private String reason;        // 理由
-    private boolean halfDay;      // 半日申請フラグ
-    private boolean spApply;      // 特認申請フラグ
-    private Integer apply;        // 承認ステータス (0:未承認, 1:承認, 2:拒否, 3:キャンセルなど)
+    private Long requestId;       
+    private String userId;        
+    private String startDate;     
+    private String startTime;     
+    private String endDate;       
+    private String endTime;       
+    private String reason;        
+    private boolean halfDay;      
+    private boolean spApply;      
+    private Integer apply;        
     
     // User Entityから結合して追加するフィールド
-    private String applicantFullName; // 申請者氏名 (姓 + 名)
+    private String applicantFullName; 
 
-    // =========================================================
-    // 【エラー解消済み】デフォルトコンストラクタ (ApplicationServiceImplで使用)
-    // =========================================================
+    // 【デフォルトコンストラクタ】
     public RequestDetailDto() {
     }
-
+    
     // =========================================================
-    // ゲッターとセッター
+    // ゲッターとセッター (全てのフィールドについて定義)
     // =========================================================
+    
+    public Long getRequestId() { return requestId; }
+    public void setRequestId(Long requestId) { this.requestId = requestId; }
 
-    // requestId
-    public Long getRequestId() {
-        return requestId;
-    }
+    public String getUserId() { return userId; }
+    public void setUserId(String userId) { this.userId = userId; }
 
-    public void setRequestId(Long requestId) {
-        this.requestId = requestId;
-    }
+    public String getStartDate() { return startDate; }
+    public void setStartDate(String startDate) { this.startDate = startDate; }
 
-    // userId
-    public String getUserId() {
-        return userId;
-    }
+    public String getStartTime() { return startTime; }
+    public void setStartTime(String startTime) { this.startTime = startTime; }
 
-    public void setUserId(String userId) {
-        this.userId = userId;
-    }
+    public String getEndDate() { return endDate; }
+    public void setEndDate(String endDate) { this.endDate = endDate; }
 
-    // startDate
-    public String getStartDate() {
-        return startDate;
-    }
+    public String getEndTime() { return endTime; }
+    public void setEndTime(String endTime) { this.endTime = endTime; }
 
-    public void setStartDate(String startDate) {
-        this.startDate = startDate;
-    }
+    public String getReason() { return reason; }
+    public void setReason(String reason) { this.reason = reason; }
 
-    // startTime
-    public String getStartTime() {
-        return startTime;
-    }
+    public boolean isHalfDay() { return halfDay; }
+    public void setHalfDay(boolean halfDay) { this.halfDay = halfDay; }
 
-    public void setStartTime(String startTime) {
-        this.startTime = startTime;
-    }
+    public boolean isSpApply() { return spApply; }
+    public void setSpApply(boolean spApply) { this.spApply = spApply; }
 
-    // endDate
-    public String getEndDate() {
-        return endDate;
-    }
+    public Integer getApply() { return apply; }
+    public void setApply(Integer apply) { this.apply = apply; }
 
-    public void setEndDate(String endDate) {
-        this.endDate = endDate;
-    }
-
-    // endTime
-    public String getEndTime() {
-        return endTime;
-    }
-
-    public void setEndTime(String endTime) {
-        this.endTime = endTime;
-    }
-
-    // reason
-    public String getReason() {
-        return reason;
-    }
-
-    public void setReason(String reason) {
-        this.reason = reason;
-    }
-
-    // halfDay
-    public boolean isHalfDay() {
-        return halfDay;
-    }
-
-    public void setHalfDay(boolean halfDay) {
-        this.halfDay = halfDay;
-    }
-
-    // spApply
-    public boolean isSpApply() {
-        return spApply;
-    }
-
-    public void setSpApply(boolean spApply) {
-        this.spApply = spApply;
-    }
-
-    // apply
-    public Integer getApply() {
-        return apply;
-    }
-
-    public void setApply(Integer apply) {
-        this.apply = apply;
-    }
-
-    // applicantFullName
-    public String getApplicantFullName() {
-        return applicantFullName;
-    }
-
-    public void setApplicantFullName(String applicantFullName) {
-        this.applicantFullName = applicantFullName;
-    }
+    public String getApplicantFullName() { return applicantFullName; }
+    public void setApplicantFullName(String applicantFullName) { this.applicantFullName = applicantFullName; }
 }

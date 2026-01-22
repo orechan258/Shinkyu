@@ -8,62 +8,61 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
+import com.example.demo.service.impl.CustomOAuth2UserService;
+
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
-    /**
-     * パスワードエンコーダーのBean定義。
-     * ログイン時のパスワード検証や、DBへの保存時に使用する。
-     */
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        // BCryptPasswordEncoderを使用して、パスワードを安全にハッシュ化する
-        return new BCryptPasswordEncoder();
-    }
+	private final CustomOAuth2UserService customOAuth2UserService;
 
-    /**
-     * アプリケーション全体のセキュリティ設定（アクセスルール、ログイン/ログアウト設定）を定義する。
-     */
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
-            // 認可（アクセス制御）の設定
-            .authorizeHttpRequests(authorize -> authorize
-                // 認証なしでアクセス可能 (ログインページと静的リソース)
-                .requestMatchers("/", "/login", "/css/**", "/js/**").permitAll() 
-                
-                // 申請、確認、ホーム画面は、認証されたユーザーならアクセス可能
-                .requestMatchers("/request", "/check", "/finish", "/home").authenticated()
-                
-                // 承認画面は承認者または管理者のロールが必要
-                // hasAnyRole() は自動的に "ROLE_" を接頭辞として付与する
-                .requestMatchers("/approve", "/approve/**").hasAnyRole("APPROVER", "ADMIN")
-                
-                // 管理者画面とCSVダウンロードは管理者ロールが必要
-                .requestMatchers("/admin", "/csv").hasRole("ADMIN")
-                
-                // 上記以外で、全ての認証済みユーザーがアクセスできるべきパス
-                .anyRequest().authenticated()
-            )
-            // ログインフォームの設定
-            .formLogin(login -> login
-                .loginPage("/")               // ログインページのURL (ApplicationControllerで定義済み)
-                .loginProcessingUrl("/login") // フォームのPOST送信先（Spring Securityが処理）
-                .defaultSuccessUrl("/home", true) // ログイン成功後のリダイレクト先
-                .failureUrl("/?error")        // ログイン失敗時のリダイレクト先
-                .usernameParameter("userId")  // ユーザー名として使用するフォームパラメータ名
-                .passwordParameter("password")// パスワードとして使用するフォームパラメータ名
-            )
-            // ログアウトの設定
-            .logout(logout -> logout
-                .logoutSuccessUrl("/")        // ログアウト成功後のリダイレクト先
-                .permitAll()
-            );
+	// コンストラクタ注入
+	public SecurityConfig(CustomOAuth2UserService customOAuth2UserService) {
+		this.customOAuth2UserService = customOAuth2UserService;
+	}
 
-        // ※開発環境ではCSRFを無効化することがあるが、本番環境ではデフォルトで有効にすべき
-        // .csrf(AbstractHttpConfigurer::disable); 
+	@Bean
+	PasswordEncoder passwordEncoder() {
+		return new BCryptPasswordEncoder();
+	}
 
-        return http.build();
-    }
+	@Bean
+	SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+		http
+				// 1. 認可の設定（上から順に適用されます）
+				// SecurityConfig.java
+				.authorizeHttpRequests(auth -> auth
+						.requestMatchers("/", "/login", "/css/**", "/js/**", "/favicon.ico", "/oauth2/**").permitAll()
+						// GUEST権限の人が /home にアクセスすることを一時的に許可する（Controllerでリダイレクトさせるため）
+						.requestMatchers("/home", "/link-account","/profile/**").hasAnyRole("GUEST", "USER", "APPROVER", "ADMIN")
+						.requestMatchers("/admin/**").hasRole("ADMIN")
+						.anyRequest().authenticated())
+
+				// 2. 通常のフォームログイン設定
+				.formLogin(login -> login
+						.loginPage("/") // 自作ログイン画面
+						.loginProcessingUrl("/login") // formのaction属性と一致させる
+						.defaultSuccessUrl("/home", true)
+						.usernameParameter("userId")
+						.passwordParameter("password")
+						.permitAll())
+
+				// 3. Googleログイン（OAuth2）設定
+				.oauth2Login(oauth2 -> oauth2
+						.loginPage("/")
+						.userInfoEndpoint(userInfo -> userInfo
+								.userService(customOAuth2UserService))
+						// 成功時はControllerの /home で GUEST かどうかを判定させる
+						.defaultSuccessUrl("/home", true))
+
+				// 4. ログアウト設定
+				.logout(logout -> logout
+						.logoutUrl("/logout")
+						.logoutSuccessUrl("/")
+						.invalidateHttpSession(true)
+						.deleteCookies("JSESSIONID")
+						.permitAll());
+
+		return http.build();
+	}
 }

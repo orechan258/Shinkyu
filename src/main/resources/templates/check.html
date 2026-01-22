@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ja" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
 <head>
     <meta charset="UTF-8">
     <title>申請状況確認</title>
@@ -11,6 +12,7 @@
             border-bottom: 2px solid #ccc;
             margin-bottom: 20px;
         }
+
         .tab-button {
             padding: 10px 20px;
             cursor: pointer;
@@ -23,48 +25,59 @@
             transition: background-color 0.2s;
             font-weight: bold;
         }
+
         .tab-button.active {
             background-color: white;
             border-color: #ccc;
-            border-bottom: 2px solid white; /* タブの下線と被せて浮かせる */
-            margin-bottom: -2px; /* 線の太さ分浮かせる */
+            border-bottom: 2px solid white;
+            /* タブの下線と被せて浮かせる */
+            margin-bottom: -2px;
+            /* 線の太さ分浮かせる */
             color: #3498db;
         }
+
         .tab-content {
             display: none;
             padding: 10px 0;
             border-top: 2px solid #ccc;
             margin-top: -2px;
         }
+
         .tab-content.active {
             display: block;
         }
-        
+
         /* --- テーブル固有のスタイル (簡略化) --- */
-        table { width: 100%; border-collapse: collapse; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        thead { background-color: #34495e; color: white; }
-        .expired { background-color: #fdd; } /* 期限切れを赤で強調 */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        thead {
+            background-color: #34495e;
+            color: white;
+        }
+
+        .expired {
+            background-color: #fdd;
+        }
+
+        /* 期限切れを赤で強調 */
     </style>
 </head>
+
 <body>
-    
-    <div class="hamburger-menu">
-        <div class="menu-icon" onclick="toggleMenu()">☰</div>
-        <div id="menuPanel" class="menu-panel">
-            <a href="javascript:void(0)" class="close-btn" onclick="toggleMenu()">×</a>
-            <a th:href="@{/profile}" sec:authorize="isAuthenticated()">プロフィール</a>
-            <a th:href="@{/request}" sec:authorize="isAuthenticated()">申請画面</a>
-            <a th:href="@{/check}" sec:authorize="isAuthenticated()">申請確認画面</a>
-            <a th:href="@{/approve}" sec:authorize="hasAnyRole('APPROVER', 'ADMIN')">承認画面</a>
-            <a th:href="@{/admin}" sec:authorize="hasRole('ADMIN')">管理者画面</a>
-            <a th:href="@{/home}">ホームへ戻る</a>
-            <form th:action="@{/logout}" method="post" style="padding: 15px 20px;">
-                <button type="submit" style="width: 100%; background-color: #e74c3c; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer;">ログアウト</button>
-            </form>
-        </div>
-    </div>
-    
+
+    <div th:replace="~{common :: menu}"></div>
+    <script th:replace="~{common :: menuScript}"></script>
+
     <h1>申請状況確認画面</h1>
 
     <div class="tab-menu">
@@ -77,27 +90,32 @@
         <h2>承認待ちの申請 (<span th:text="${pendingRequests.size()}">0</span>件)</h2>
         <table th:if="${!pendingRequests.empty}">
             <thead>
-		    	<tr>
-		        <th>特認</th> <th>申請者氏名</th> <th>開始日時</th> <th>終了日時</th> <th>理由</th> <th>半日</th> <th>アクション</th> </tr>
-			</thead>
-			<tbody>
-			    <tr th:each="req : ${pendingRequests}" class="pending">
-			        <td><span th:if="${req.spApply != null and req.spApply}">✅</span></td>
-			        <td th:text="${req.applicantFullName}">山田 太郎</td> 
-			        <td th:text="${req.startDate} + ' ' + ${req.startTime}">2025-01-01 09:00:00</td>
-			        <td th:text="${req.endDate} + ' ' + ${req.endTime}">2025-01-01 17:30:00</td>
-			        <td th:text="${req.reason}">私用</td>
-			        <td th:text="${req.halfDay == null ? 'N/A' : (req.halfDay ? '　〇　' : '　')}">いいえ</td>
-			        
-			        <td>
-			            <form th:action="@{/check/cancel}" method="post">
-			                <input type="hidden" name="requestId" th:value="${req.requestId}" /> 
-			                <button type="submit" onclick="return confirm('本当にこの申請をキャンセルしますか？');" 
-			                        style="background-color: #e74c3c; color: white; border: none; padding: 5px 10px; cursor: pointer;">キャンセル</button>
-			            </form>
-			        </td>
-			        </tr>
-			</tbody>
+                <tr>
+                    <th>特認</th>
+                    <th>開始日時</th>
+                    <th>終了日時</th>
+                    <th>理由</th>
+                    <th>半日</th>
+                    <th>アクション</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="req : ${pendingRequests}" class="pending">
+                    <td><span th:if="${req.spApply != null and req.spApply}">✅</span></td>
+                    <td th:text="${req.startDate} + ' ' + ${req.startTime}">2025-01-01 09:00:00</td>
+                    <td th:text="${req.endDate} + ' ' + ${req.endTime}">2025-01-01 17:30:00</td>
+                    <td th:text="${req.reason}">私用</td>
+                    <td th:text="${req.halfDay == null ? 'N/A' : (req.halfDay ? '　〇　' : '　')}">いいえ</td>
+
+                    <td>
+                        <form th:action="@{/check/cancel}" method="post">
+                            <input type="hidden" name="requestId" th:value="${req.requestId}" />
+                            <button type="submit" onclick="return confirm('本当にこの申請をキャンセルしますか？');"
+                                style="background-color: #e74c3c; color: white; border: none; padding: 5px 10px; cursor: pointer;">取り消し</button>
+                        </form>
+                    </td>
+                </tr>
+            </tbody>
         </table>
         <div th:if="${pendingRequests.empty}">承認待ちの申請はありません。</div>
     </div>
@@ -107,7 +125,11 @@
         <table th:if="${!completedRequests.empty}">
             <thead>
                 <tr>
-                    <th>ステータス</th> <th>申請者氏名</th> <th>開始日時</th> <th>終了日時</th> <th>理由</th>
+                    <th>ステータス</th>
+                    <th>申請者氏名</th>
+                    <th>開始日時</th>
+                    <th>終了日時</th>
+                    <th>理由</th>
                 </tr>
             </thead>
             <tbody>
@@ -116,7 +138,7 @@
                         <span th:if="${req.apply == 1}" style="color: green;">✅ 承認済み</span>
                         <span th:if="${req.apply == 2}" style="color: red;">❌ 却下</span>
                     </td>
-                    <td th:text="${req.applicantFullName}"></td> 
+                    <td th:text="${req.applicantFullName}"></td>
                     <td th:text="${req.startDate} + ' ' + ${req.startTime}"></td>
                     <td th:text="${req.endDate} + ' ' + ${req.endTime}"></td>
                     <td th:text="${req.reason}"></td>
@@ -131,13 +153,17 @@
         <table th:if="${!expiredRequests.empty}">
             <thead>
                 <tr>
-                    <th>特認</th> <th>申請者氏名</th> <th>開始日時</th> <th>終了日時</th> <th>理由</th>
+                    <th>特認</th>
+                    <th>申請者氏名</th>
+                    <th>開始日時</th>
+                    <th>終了日時</th>
+                    <th>理由</th>
                 </tr>
             </thead>
             <tbody>
-                <tr th:each="req : ${expiredRequests}" class="expired"> 
+                <tr th:each="req : ${expiredRequests}" class="expired">
                     <td><span th:if="${req.spApply != null and req.spApply}">✅</span></td>
-                    <td th:text="${req.applicantFullName}"></td> 
+                    <td th:text="${req.applicantFullName}"></td>
                     <td th:text="${req.startDate} + ' ' + ${req.startTime}"></td>
                     <td th:text="${req.endDate} + ' ' + ${req.endTime}"></td>
                     <td th:text="${req.reason}"></td>
@@ -146,15 +172,9 @@
         </table>
         <div th:if="${expiredRequests.empty}">期限切れの申請はありません。</div>
     </div>
-    
-    <a th:href="@{/home}">ホーム画面に戻る</a>
 
     <script>
-        // ハンバーガーメニューのトグル
-        function toggleMenu() {
-            const menu = document.getElementById('menuPanel');
-            menu.classList.toggle('open');
-        }
+        // ハンバーガーメニューのトグル (削除)
 
         // ★★★ タブ切り替えのJavaScript ★★★
         function openTab(evt, tabName) {
@@ -181,6 +201,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             // 初期状態ですでに active クラスが付与されているため、JSで再度実行する必要はないことが多い
         });
-	</script>
+    </script>
 </body>
+
 </html>

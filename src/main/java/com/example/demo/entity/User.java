@@ -1,20 +1,21 @@
 package com.example.demo.entity;
 
 import jakarta.persistence.Column;
-import jakarta.persistence.Entity; // Spring Boot 3.x以降は jakarta.persistence を使用
+import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 
 /**
- * データベースの 'user' テーブルとマッピングされるJPAエンティティクラス。
+ * データベースの 'app_user' テーブルとマッピングされるJPAエンティティクラス。
  */
 @Entity
-@Table(name = "app_user") // データベースのテーブル名
+@Table(name = "app_user")
 public class User {
 
-
     // --- DBのカラム ---
-	@Id
+
+    @Id
     @Column(name = "user_id", unique = true, nullable = false)
     private String userId; // ユーザーID (業務キー)
 
@@ -24,34 +25,41 @@ public class User {
     @Column(name = "first_name", nullable = false)
     private String firstName; // 氏名（名）
 
-    @Column(name = "department_name")
-    private String departmentName; // 所属部署
+    @Column(name = "role")
+    private String role; // 役職（部長、チーフなど）
 
-    @Column(name = "group_name")
-    private String groupName; // 所属グループ
-
-    @Column(name = "password", nullable = false, length = 60) // カラム名を 'password' に変更
-    private String password;
+    @Column(name = "password", nullable = false, length = 60)
+    private String password; // パスワードハッシュ
 
     @Column(name = "must_change_password")
     private boolean mustChangePassword; // 初回ログイン時強制変更フラグ
- // 【追加】権限を示すDBカラムを想定したフィールド
+
     @Column(name = "is_admin")
     private boolean admin; // 管理者フラグ
     
     @Column(name = "is_approver")
     private boolean approver; // 承認者フラグ
     
-    private Integer groupId; // 所属グループID
+    @Column(name = "email")
+    private String email; // メールアドレス（Google連携用）
     
-    // --- コンストラクタ（JPAは引数なしのコンストラクタを要求します） ---
+    @Column(name = "group_id")
+    private Integer groupId; // 所属グループID
+
+    // --- 表示用の補助フィールド（DBには保存せずプログラム内でのみ使用） ---
+
+    @Transient
+    private String departmentName; 
+
+    @Transient
+    private String groupName;
+
+    // --- コンストラクタ ---
+
     public User() {}
 
     // --- Getter and Setter ---
 
-
-
-    // ユーザーID
     public String getUserId() {
         return userId;
     }
@@ -60,7 +68,6 @@ public class User {
         this.userId = userId;
     }
 
-    // 氏名（姓）
     public String getLastName() {
         return lastName;
     }
@@ -69,7 +76,6 @@ public class User {
         this.lastName = lastName;
     }
 
-    // 氏名（名）
     public String getFirstName() {
         return firstName;
     }
@@ -78,26 +84,15 @@ public class User {
         this.firstName = firstName;
     }
 
-    // 所属部署
-    public String getDepartmentName() {
-        return departmentName;
+    public String getRole() {
+        return role;
     }
 
-    public void setDepartmentName(String departmentName) {
-        this.departmentName = departmentName;
+    public void setRole(String role) {
+        this.role = role;
     }
 
-    // 所属グループ
-    public String getGroupName() {
-        return groupName;
-    }
-
-    public void setGroupName(String groupName) {
-        this.groupName = groupName;
-    }
-
-    // パスワードハッシュ
-    public String getPassword() { // Spring Securityの規約 (UserDetails) に合わせる
+    public String getPassword() {
         return password;
     }
 
@@ -105,16 +100,14 @@ public class User {
         this.password = password;
     }
 
-    // 強制変更フラグ (boolean型のGetter)
     public boolean isMustChangePassword() {
-        return mustChangePassword;
+        return mustChangePassword; // 無限ループを修正
     }
 
     public void setMustChangePassword(boolean mustChangePassword) {
         this.mustChangePassword = mustChangePassword;
     }
-    
- // 【追加】UserDetailsServiceImplで参照されるゲッター
+
     public boolean isAdmin() {
         return admin;
     }
@@ -130,7 +123,15 @@ public class User {
     public void setApprover(boolean approver) {
         this.approver = approver;
     }
-    
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
     public Integer getGroupId() {
         return groupId;
     }
@@ -138,28 +139,20 @@ public class User {
     public void setGroupId(Integer groupId) {
         this.groupId = groupId;
     }
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+
+    public String getDepartmentName() {
+        return departmentName;
+    }
+
+    public void setDepartmentName(String departmentName) {
+        this.departmentName = departmentName;
+    }
+
+    public String getGroupName() {
+        return groupName;
+    }
+
+    public void setGroupName(String groupName) {
+        this.groupName = groupName;
+    }
 }
