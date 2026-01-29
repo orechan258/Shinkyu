@@ -184,6 +184,9 @@ public class ApplicationServiceImpl implements ApplicationService {
 	@Override
 	@Transactional
 	public void cancelRequest(Long requestId, String userId) {
+		if (requestId == null) {
+			throw new IllegalArgumentException("申請IDが指定されていません。");
+		}
 		Request request = requestRepository.findById(requestId)
 				.orElseThrow(() -> new RuntimeException("申請ID [" + requestId + "] が見つかりません。"));
 
@@ -221,6 +224,9 @@ public class ApplicationServiceImpl implements ApplicationService {
 	@Override
 	@Transactional
 	public void updateApprovalStatus(Long requestId, boolean approved) {
+		if (requestId == null) {
+			throw new IllegalArgumentException("申請IDが指定されていません。");
+		}
 		// 1. 申請データを取得
 		Request req = requestRepository.findById(requestId).orElseThrow();
 
@@ -390,17 +396,18 @@ public class ApplicationServiceImpl implements ApplicationService {
 		return dto;
 	}
 
-	private void updateUserFromRequest(Request request) {
-		// 理由欄から「姓 名 (グループ名)」をパースして抽出するロジック、
-		// またはRequestテーブルに専用のカラムを作ってそこから抽出してuserRepository.saveする
-	}
+	// private void updateUserFromRequest(Request request) {
+	// // 未使用メソッドのため削除
+	// }
 
 	// ApplicationServiceImpl.java
 
 	@Override
 	@Transactional
 	public void saveProfileRequest(ProfileRequest req) {
-		profileRequestRepository.save(req);
+		if (req != null) {
+			profileRequestRepository.save(req);
+		}
 	}
 
 	@Override
@@ -412,7 +419,9 @@ public class ApplicationServiceImpl implements ApplicationService {
 				req.setCurrentLastName(user.getLastName());
 				req.setCurrentFirstName(user.getFirstName());
 				// 現在のグループ名を取得
-				groupRepository.findById(user.getGroupId()).ifPresent(g -> req.setCurrentGroupName(g.getName()));
+				if (user.getGroupId() != null) {
+					groupRepository.findById(user.getGroupId()).ifPresent(g -> req.setCurrentGroupName(g.getName()));
+				}
 			});
 
 			// 変更後のグループ名も取得
@@ -426,6 +435,9 @@ public class ApplicationServiceImpl implements ApplicationService {
 	@Override
 	@Transactional
 	public void approveProfileRequest(Long requestId, boolean approved) {
+		if (requestId == null) {
+			throw new IllegalArgumentException("申請IDが指定されていません。");
+		}
 		ProfileRequest pReq = profileRequestRepository.findById(requestId)
 				.orElseThrow(() -> new RuntimeException("申請が見つかりません"));
 
@@ -519,7 +531,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 			}
 
 			// ID重複チェック (自動採番でも念のため、指定ありなら必須)
-			if (!userRepository.existsById(user.getUserId())) {
+			if (user.getUserId() != null && !userRepository.existsById(user.getUserId())) {
 				userRepository.save(user);
 				count++;
 			} else {
@@ -541,7 +553,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 		}
 
 		// 既にIDが存在するかチェック
-		if (userRepository.existsById(user.getUserId())) {
+		if (user.getUserId() != null && userRepository.existsById(user.getUserId())) {
 			throw new RuntimeException("ユーザーID '" + user.getUserId() + "' は既に登録されています。");
 		}
 
@@ -563,7 +575,9 @@ public class ApplicationServiceImpl implements ApplicationService {
 	@Transactional
 	public void deleteUser(String userId) {
 		// 関連データの整合性を考慮しつつ削除（または論理削除）
-		userRepository.deleteById(userId);
+		if (userId != null) {
+			userRepository.deleteById(userId);
+		}
 	}
 
 	/**

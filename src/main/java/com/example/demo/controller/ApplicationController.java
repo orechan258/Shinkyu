@@ -36,13 +36,13 @@ public class ApplicationController {
     }
 
     // --- 認証・ホーム関連 ---
-    
+
     @GetMapping("/")
     public String login() {
         return "login";
     }
-    
- // ApplicationController.java に追加
+
+    // ApplicationController.java に追加
     @GetMapping("/home")
     public String home(Model model, Authentication authentication, HttpSession session) {
         if (authentication == null) {
@@ -55,7 +55,7 @@ public class ApplicationController {
         // 1. Googleログイン（OAuth2User）の場合の処理
         if (principal instanceof OAuth2User oAuth2User) {
             String googleEmail = oAuth2User.getAttribute("email");
-            
+
             // メアドからDBのユーザーを特定
             userId = userRepository.findByEmail(googleEmail)
                     .map(com.example.demo.entity.User::getUserId)
@@ -63,7 +63,7 @@ public class ApplicationController {
 
             // --- 自動連携（紐付け）ロジック ---
             String pendingUserId = (String) session.getAttribute("PENDING_LINK_USER_ID");
-            
+
             // まだDBにメアドがないが、プロフィール画面から「連携ボタン」を押して来た場合
             if (userId == null && pendingUserId != null) {
                 // ① DBのemailカラムを更新
@@ -85,17 +85,18 @@ public class ApplicationController {
                 }
 
                 // ④ 現在のセッション情報を正しい権限で上書き（これで管理者メニューが復活する）
-                UsernamePasswordAuthenticationToken newAuth = 
-                    new UsernamePasswordAuthenticationToken(pendingUserId, null, authorities);
+                UsernamePasswordAuthenticationToken newAuth = new UsernamePasswordAuthenticationToken(pendingUserId,
+                        null, authorities);
                 SecurityContextHolder.getContext().setAuthentication(newAuth);
 
                 // 連携完了メッセージと共にプロフィールへ戻す
                 return "redirect:/profile?success=google_linked";
             }
-            
+
             // 連携済みだがROLE_GUEST扱いになっている場合のフォールバック（初回ログイン時など）
-            if (userId != null && authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_GUEST"))) {
-                 // ここでも権限を復元してあげると親切（必要に応じて実装）
+            if (userId != null
+                    && authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_GUEST"))) {
+                // ここでも権限を復元してあげると親切（必要に応じて実装）
             }
 
         } else {
@@ -106,7 +107,7 @@ public class ApplicationController {
         // 2. ROLE_GUEST (Googleログインしたが、まだDBにメアドがなく紐付けもしてない人)
         boolean isGuest = authentication.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_GUEST"));
-        
+
         if (isGuest && userId == null) {
             return "redirect:/link-account";
         }
@@ -120,20 +121,23 @@ public class ApplicationController {
         }
 
         return "redirect:/";
-    }    /**
+    }
+
+    /**
      * アカウント紐付け画面の表示
      */
     @GetMapping("/link-account")
     public String linkAccountPage(Authentication authentication) {
-        if (authentication == null) return "redirect:/";
-        
+        if (authentication == null)
+            return "redirect:/";
+
         // 既に連携済みの人が来たらホームへ戻す
         boolean isGuest = authentication.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_GUEST"));
         if (!isGuest) {
             return "redirect:/home";
         }
-        return "link_account"; 
+        return "link_account";
     }
 
     /**
@@ -148,7 +152,7 @@ public class ApplicationController {
             @RequestParam String password,
             Authentication authentication,
             Model model) {
-        
+
         // OAuth2Userであることを確認してメールアドレスを取得
         if (!(authentication.getPrincipal() instanceof OAuth2User oAuth2User)) {
             return "redirect:/";
@@ -156,9 +160,11 @@ public class ApplicationController {
         String email = oAuth2User.getAttribute("email");
         String lastName = oAuth2User.getAttribute("family_name");
         String firstName = oAuth2User.getAttribute("given_name");
-        
-        if (lastName == null) lastName = "Guest";
-        if (firstName == null) firstName = "User";
+
+        if (lastName == null)
+            lastName = "Guest";
+        if (firstName == null)
+            firstName = "User";
 
         try {
             // 新規ユーザーとして登録
@@ -167,41 +173,37 @@ public class ApplicationController {
             newUser.setLastName(lastName);
             newUser.setFirstName(firstName);
             newUser.setPassword(password); // Service内でハッシュ化されることを想定
-            
+
             // 部署・グループは未定(null)として登録
             // (必要であれば後でプロフィールから設定などの運用)
-            
+
             applicationService.registerNewUser(newUser);
 
             // 連携(登録)完了
-            return "redirect:/?linked"; 
-            
+            return "redirect:/?linked";
+
         } catch (Exception e) {
             model.addAttribute("error", "登録に失敗しました: " + e.getMessage());
             return "link_account";
         }
     }
-    
-    
-    	
-    
-    
+
     @GetMapping("/finish")
     public String finish() {
         return "request_finish";
     }
-    
+
     // --- 申請機能 ---
-    
+
     @GetMapping("/request")
     public String request(Model model) {
-        model.addAttribute("request", new Request()); 
+        model.addAttribute("request", new Request());
         return "request";
     }
-    
+
     @PostMapping("/request")
     public String submitRequest(Request request, Authentication authentication) { // PrincipalからAuthenticationに変更
-        
+
         if (authentication != null) {
             String userId;
             // Googleログインか通常ログインかを判定して、DB上の正しい「ユーザーID」を取得する
@@ -213,24 +215,24 @@ public class ApplicationController {
             } else {
                 userId = authentication.getName(); // 通常ログイン(ID/PASS)ならそのまま
             }
-            
+
             request.setUserId(userId); // ここで短いID（U12345等）がセットされるのでエラーが消える
         } else {
             request.setUserId("GUEST_01");
         }
-        
+
         applicationService.createNewRequest(request);
         return "redirect:/finish";
     }
-    
+
     // --- 申請確認機能 (/check) ---
-    
+
     @GetMapping("/check")
     public String checkRequest(Model model, Authentication authentication) { // PrincipalからAuthenticationに変更
         if (authentication == null) {
-            return "redirect:/"; 
+            return "redirect:/";
         }
-        
+
         // --- 正しいユーザーIDを特定するロジック ---
         String currentUserId;
         if (authentication.getPrincipal() instanceof OAuth2User oAuth2User) {
@@ -246,11 +248,11 @@ public class ApplicationController {
         if (currentUserId == null) {
             return "redirect:/";
         }
-        
+
         // 正しい業務IDでDBから申請リストを取得
         List<RequestDetailDto> allUserRequestsWithNames = applicationService.findMyRequestsWithNames(currentUserId);
-        
-        LocalDateTime now = LocalDateTime.now(); 
+
+        LocalDateTime now = LocalDateTime.now();
 
         // 1. 承認待ちのリスト
         List<RequestDetailDto> pendingRequests = allUserRequestsWithNames.stream()
@@ -261,7 +263,7 @@ public class ApplicationController {
         List<RequestDetailDto> completedRequests = allUserRequestsWithNames.stream()
                 .filter(req -> req.getApply() != null && (req.getApply() == 1 || req.getApply() == 2))
                 .toList();
-                
+
         // 3. 期限切れのリスト
         List<RequestDetailDto> expiredRequests = allUserRequestsWithNames.stream()
                 .filter(req -> (req.getApply() == null || req.getApply() == 0) && isExpiredDto(req, now))
@@ -269,8 +271,8 @@ public class ApplicationController {
 
         model.addAttribute("pendingRequests", pendingRequests);
         model.addAttribute("completedRequests", completedRequests);
-        model.addAttribute("expiredRequests", expiredRequests); 
-        
+        model.addAttribute("expiredRequests", expiredRequests);
+
         return "check";
     }
 
@@ -284,7 +286,7 @@ public class ApplicationController {
             return "redirect:/"; // 認証されていない場合はログインへ
         }
         String currentUserId = principal.getName();
-        
+
         try {
             // Service層で、このrequestIdがcurrentUserIdの所有物であることを確認してからキャンセル処理を実行
             applicationService.cancelRequest(requestId, currentUserId);
@@ -292,11 +294,11 @@ public class ApplicationController {
             // エラー処理（例: ログ出力、申請が見つからないなど）
             // return "redirect:/check?error=cancel_failed";
         }
-        
+
         // キャンセル後、申請確認画面に戻る
         return "redirect:/check?success=cancelled";
     }
-    
+
     // 期限切れ判定用のヘルパーメソッド (DTO用)
     private boolean isExpiredDto(RequestDetailDto req, LocalDateTime now) {
         if (req.getEndDate() == null || req.getEndTime() == null) {
@@ -307,25 +309,14 @@ public class ApplicationController {
             String endDateTimeStr = req.getEndDate() + " " + req.getEndTime();
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"); // 適切なフォーマットを使用
             LocalDateTime endDateTime = LocalDateTime.parse(endDateTimeStr, formatter);
-            
+
             return endDateTime.isBefore(now);
         } catch (Exception e) {
-            return false; 
+            return false;
         }
     }
-    
 
     // ユーザーID特定用の共通ヘルパーメソッドを追加
-    private String getInternalUserId(Authentication authentication) {
-        if (authentication.getPrincipal() instanceof OAuth2User oAuth2User) {
-            String email = oAuth2User.getAttribute("email");
-            return userRepository.findByEmail(email)
-                    .map(com.example.demo.entity.User::getUserId)
-                    .orElseThrow(() -> new RuntimeException("ユーザーが見つかりません: " + email));
-        }
-        return authentication.getName(); // 通常ログインの場合
-    }    
-   
+    // ユーザーID特定用の共通ヘルパーメソッドを追加 (削除: 未使用のため)
 
-    
 }
