@@ -11,30 +11,29 @@ import com.example.demo.repository.UserRepository;
 @Service
 public class UserDetailsServiceImpl implements UserDetailsService {
 
-    private final UserRepository userRepository;
+	private final UserRepository userRepository;
 
-    public UserDetailsServiceImpl(UserRepository userRepository) {
-        this.userRepository = userRepository;
-    }
+	public UserDetailsServiceImpl(UserRepository userRepository) {
+		this.userRepository = userRepository;
+	}
 
-    // ログイン処理時にSpring Securityが呼び出すメソッド
-    @Override
-    public UserDetails loadUserByUsername(String userId) throws UsernameNotFoundException {
-        
-        // データベースからユーザーIDで検索
-        User user = userRepository.findByUserId(userId);
+	// ログイン処理時にSpring Securityが呼び出すメソッド
+	@Override
+	public UserDetails loadUserByUsername(String userId) throws UsernameNotFoundException {
 
-        if (user == null) {
-            throw new UsernameNotFoundException("User not found with userId: " + userId);
-        }
+		// データベースからユーザーIDで検索
+		User user = userRepository.findByUserId(userId);
 
-        // Spring Securityが認識できる UserDetails オブジェクトを作成
-        // ロール（権限）は今回は空 (Collections.emptyList()) としますが、後でisApproverやisAdminを使って実装します。
-        return new org.springframework.security.core.userdetails.User(
-        	    user.getUserId(),
-        	    user.getPassword(),
-        	    // ★修正: 以前は Collections.emptyList() だった部分を、Entityから取得した権限リストに置き換える
-        	    user.getAuthorities() 
-        	);
-    }
+		if (user == null) {
+			throw new UsernameNotFoundException("User not found with userId: " + userId);
+		}
+
+		// Spring Securityが認識できる UserDetails オブジェクトを作成
+		// ロール（権限）は今回は空 (Collections.emptyList()) としますが、後でisApproverやisAdminを使って実装します。
+		return new org.springframework.security.core.userdetails.User(
+				user.getUserId(),
+				user.getPassword(),
+				// ★修正: 以前は Collections.emptyList() だった部分を、Entityから取得した権限リストに置き換える
+				user.getAuthorities());
+	}
 }
