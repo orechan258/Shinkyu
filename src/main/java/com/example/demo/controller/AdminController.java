@@ -41,7 +41,7 @@ public class AdminController {
         List<Request> pendingRequests = applicationService.findAll().stream()
                 .filter(r -> r.getApply() != null && r.getApply() == 0)
                 .collect(Collectors.toList());
-        
+
         model.addAttribute("pendingRequests", pendingRequests);
         return "admin_home"; // 以前のコードの admin_home から admin に合わせています
     }
@@ -56,9 +56,9 @@ public class AdminController {
     }
 
     @PostMapping("/approve-profile-request")
-    public String approveProfileRequest(@RequestParam Long requestId, 
-                                        @RequestParam boolean approved, 
-                                        RedirectAttributes ra) {
+    public String approveProfileRequest(@RequestParam Long requestId,
+            @RequestParam boolean approved,
+            RedirectAttributes ra) {
         applicationService.approveProfileRequest(requestId, approved);
         String msg = approved ? "プロフィール変更を承認しました。" : "申請を却下しました。";
         ra.addFlashAttribute("message", msg);
@@ -72,15 +72,15 @@ public class AdminController {
             @RequestParam(required = false) String search,
             @RequestParam(required = false) List<Integer> groupIds,
             @PageableDefault(size = 10) Pageable pageable, Model model) {
-        
+
         Page<UserDetailDto> userPage = applicationService.searchUsersPaginated(search, groupIds, pageable);
-        
+
         model.addAttribute("userPage", userPage);
         model.addAttribute("searchQuery", search);
         model.addAttribute("selectedGroupIds", groupIds);
         model.addAttribute("allDepartments", applicationService.findAllDepartments());
         model.addAttribute("allGroups", applicationService.findAllGroups());
-        
+
         return "admin-users";
     }
 
@@ -88,7 +88,7 @@ public class AdminController {
 
     @GetMapping("/users/add")
     public String showAddUserForm(Model model) {
-        model.addAttribute("userForm", new UserForm()); 
+        model.addAttribute("userForm", new UserForm());
         model.addAttribute("allDepartments", applicationService.findAllDepartments());
         model.addAttribute("allGroups", applicationService.findAllGroups());
         return "user-add";
@@ -99,7 +99,8 @@ public class AdminController {
         try {
             int count = 0;
             for (User user : form.getUserList()) {
-                if (user.getUserId() != null && !user.getUserId().trim().isEmpty()) {
+                // IDは自動採番なので、名前が入っているかで行の有効性を判断
+                if (user.getLastName() != null && !user.getLastName().trim().isEmpty()) {
                     applicationService.registerNewUser(user);
                     count++;
                 }
@@ -112,22 +113,7 @@ public class AdminController {
         return "redirect:/admin/users";
     }
 
-    // --- CSV・削除関連 ---
-
-    @PostMapping("/users/csv-upload")
-    public String uploadCsv(@RequestParam("file") MultipartFile file, RedirectAttributes ra) {
-        if (file.isEmpty()) {
-            ra.addFlashAttribute("error", "ファイルを選択してください。");
-            return "redirect:/admin/users";
-        }
-        try {
-            int count = applicationService.importUsersFromCsv(file.getInputStream());
-            ra.addFlashAttribute("message", count + "件のユーザーを登録しました。");
-        } catch (Exception e) {
-            ra.addFlashAttribute("error", "CSVの解析に失敗しました: " + e.getMessage());
-        }
-        return "redirect:/admin/users";
-    }
+    // --- 削除関連 ---
 
     @PostMapping("/users/delete")
     public String deleteUser(@RequestParam String userId, RedirectAttributes ra) {
@@ -143,9 +129,9 @@ public class AdminController {
             @RequestParam(required = false) String search,
             @RequestParam(required = false) List<Integer> groupIds,
             @PageableDefault(size = 10) Pageable pageable, Model model) {
-        
+
         Page<UserDetailDto> userPage = applicationService.searchUsersPaginated(search, groupIds, pageable);
-        
+
         model.addAttribute("userPage", userPage);
         model.addAttribute("searchQuery", search);
         model.addAttribute("selectedGroupIds", groupIds);
@@ -160,7 +146,7 @@ public class AdminController {
 
         return "role";
     }
-    
+
     /**
      * 権限の一括保存処理
      */
@@ -169,7 +155,7 @@ public class AdminController {
             @RequestParam(name = "approverStatus", required = false) List<String> approverList,
             @RequestParam(name = "adminStatus", required = false) List<String> adminList,
             RedirectAttributes ra) {
-        
+
         try {
             applicationService.updateAllRoles(approverList, adminList);
             ra.addFlashAttribute("message", "権限の設定を保存しました。");

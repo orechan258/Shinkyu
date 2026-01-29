@@ -139,9 +139,12 @@ public class ApplicationController {
     /**
      * アカウント紐付け処理の実行
      */
+    /**
+     * アカウント紐付け処理の実行
+     * (修正) ユーザーID入力廃止により、Googleアカウント情報から新規ユーザーを作成・登録するフローに変更
+     */
     @PostMapping("/link-account")
     public String processLinkAccount(
-            @RequestParam String userId,
             @RequestParam String password,
             Authentication authentication,
             Model model) {
@@ -151,16 +154,30 @@ public class ApplicationController {
             return "redirect:/";
         }
         String email = oAuth2User.getAttribute("email");
+        String lastName = oAuth2User.getAttribute("family_name");
+        String firstName = oAuth2User.getAttribute("given_name");
+        
+        if (lastName == null) lastName = "Guest";
+        if (firstName == null) firstName = "User";
 
-        // 1. 入力された既存IDとパスワードが正しいかチェック
-        if (applicationService.verifyUser(userId, password)) {
-            // 2. 正しければDBのユーザーレコードにGoogleメアドを保存
-            applicationService.updateUserEmail(userId, email);
+        try {
+            // 新規ユーザーとして登録
+            com.example.demo.entity.User newUser = new com.example.demo.entity.User();
+            newUser.setEmail(email);
+            newUser.setLastName(lastName);
+            newUser.setFirstName(firstName);
+            newUser.setPassword(password); // Service内でハッシュ化されることを想定
             
-            // 3. 連携完了。一度ログアウトさせて再ログインさせるのが最も安全
+            // 部署・グループは未定(null)として登録
+            // (必要であれば後でプロフィールから設定などの運用)
+            
+            applicationService.registerNewUser(newUser);
+
+            // 連携(登録)完了
             return "redirect:/?linked"; 
-        } else {
-            model.addAttribute("error", "ユーザーIDまたはパスワードが正しくありません。");
+            
+        } catch (Exception e) {
+            model.addAttribute("error", "登録に失敗しました: " + e.getMessage());
             return "link_account";
         }
     }

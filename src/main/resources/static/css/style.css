@@ -159,6 +159,116 @@ legend {
     /* 少し動く */
 }
 
+/* アクティブなリンク（現在地） */
+.sidebar nav a.active {
+    background-color: #e8f0fe;
+    color: #1a73e8;
+    font-weight: bold;
+    border-left: 3px solid #1a73e8;
+    padding-left: 12px;
+    /* ボーダー分調整 */
+}
+
+.sidebar nav a.active:hover {
+    background-color: #e8f0fe;
+    /* ホバー時も色維持 */
+    transform: none;
+    /* 動きなし */
+}
+
+/* Admin分割ボタンとそのコンテナ */
+.admin-menu-wrapper {
+    /* 必要ならここに追加 */
+}
+
+.admin-split-btn {
+    display: flex;
+    align-items: stretch;
+    margin: 8px 15px;
+    /* 他のリンクと同じマージン */
+    border-radius: 8px;
+    transition: all 0.2s;
+}
+
+.admin-split-btn:hover {
+    background-color: transparent;
+    /* 個別にホバー制御 */
+}
+
+/* 左側のメインリンク */
+.admin-main-link {
+    flex-grow: 1;
+    margin: 0 !important;
+    /* 親のflexに従うためリセット */
+    border-radius: 8px 0 0 8px !important;
+    text-align: center;
+    /* ユーザー要望により中央揃えに戻す */
+    border-right: 1px solid #eee;
+    /* 区切り線 */
+}
+
+.admin-main-link:hover {
+    background-color: #f0f2f5 !important;
+    transform: none !important;
+}
+
+/* 右側のトグルボタン */
+.dropdown-toggle-btn {
+    width: 40px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: #555;
+    border-radius: 0 8px 8px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s;
+    padding: 0;
+}
+
+.dropdown-toggle-btn:hover {
+    background-color: #f0f2f5;
+}
+
+/* ドロップダウン内のコンテナ */
+.dropdown-container {
+    display: none;
+    width: 100%;
+    /* 階層構造をわかりやすくする */
+    background-color: #fafafa;
+    border-left: 4px solid #ddd;
+    margin-left: 15px;
+    /* インデント */
+    width: calc(100% - 30px);
+    /* マージン分引く */
+    border-radius: 0 0 8px 8px;
+    /* 丸みは下だけ、あるいはナシでもいい */
+    padding-bottom: 5px;
+}
+
+/* 表示状態 */
+.dropdown-container.show {
+    display: block;
+}
+
+/* ドロップダウン内のリンク */
+.dropdown-container a {
+    margin: 4px 10px;
+    font-size: 13px;
+    color: #666;
+    text-align: center;
+    /* ここも中央揃えにするか、左揃え+インデントか... 要望は「文字は今まで通り真ん中」なので中央にする */
+    padding: 8px 0;
+    background-color: transparent;
+}
+
+/* アイコンの回転アニメーション */
+.rotate-icon {
+    transform: rotate(180deg);
+    transition: transform 0.3s;
+}
+
 .sidebar-footer {
     padding: 20px;
     border-top: 1px solid #eee;
@@ -288,6 +398,18 @@ tr:hover {
 }
 
 /* フォーム要素 (モダンに) */
+/* フォーム要素 */
+.search-panel input[type="text"],
+.search-panel select {
+    margin-bottom: 0;
+    /* 検索パネル内の入力はマージンなし（ボタンと揃えるため） */
+}
+
+.search-panel .btn {
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
+
 input[type="text"],
 input[type="date"],
 input[type="time"],
@@ -323,6 +445,20 @@ label {
     color: #333;
 }
 
+/* テーブルヘッダー (ユーザー要望により濃いグレーで白文字に) */
+th {
+    background-color: #6c757d;
+    /* 濃いグレー */
+    color: #fff;
+    /* 白文字 */
+    font-weight: bold;
+    border-top: none;
+}
+
+td {
+    border-top: none;
+}
+
 /* エラーメッセージ等 */
 .error-msg {
     color: #c0392b;
@@ -332,3 +468,21 @@ label {
 
 /* --- 旧ハンバーガーメニュー関連の削除 --- */
 /* .hamburger-menu, .menu-icon, .menu-panel などのスタイルは削除済み */
+
+/* 検索グループ内の高さを統一する修正 */
+.input-group .form-control,
+.input-group .input-group-text,
+.input-group .btn {
+    height: 38px;
+    /* 高さを明示的に固定（Bootstrapの標準的な高さ） */
+    line-height: 1.5;
+    padding-top: 0;
+    padding-bottom: 0;
+    display: flex;
+    align-items: center;
+}
+
+/* ボタン内の文字配置を中央に固定 */
+.input-group .btn {
+    justify-content: center;
+}

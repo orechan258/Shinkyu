@@ -34,7 +34,7 @@
 </head>
 
 <body class="bg-light">
-	
+
 	<div th:replace="~{common :: menu}"></div>
 	<script th:replace="~{common :: menuScript}"></script>
 	<div class="container mt-5" style="max-width: 1000px;">
@@ -50,19 +50,14 @@
 						<table class="table align-middle" id="userTable">
 							<thead>
 								<tr>
-									<th style="width: 20%;">ユーザーID</th>
-									<th style="width: 20%;">姓</th>
-									<th style="width: 20%;">名</th>
+									<th style="width: 30%;">姓</th>
+									<th style="width: 30%;">名</th>
 									<th style="width: 30%;">所属グループ</th>
 									<th style="width: 10%;" class="text-center">削除</th>
 								</tr>
 							</thead>
 							<tbody id="userTableBody">
 								<tr class="user-row">
-									<td>
-										<input type="text" name="userList[0].userId" class="form-control"
-											placeholder="U12345" required>
-									</td>
 									<td>
 										<input type="text" name="userList[0].lastName" class="form-control"
 											placeholder="山田" required>

@@ -458,24 +458,50 @@ public class ApplicationServiceImpl implements ApplicationService {
 		String line;
 		int count = 0;
 
+		// 既存の最大IDを算出 (共通ヘルパー使用)
+		int nextIdNum = calculateNextIdNumber();
+
 		reader.readLine(); // ヘッダー（1行目）をスキップ
 
 		while ((line = reader.readLine()) != null) {
 			if (line.trim().isEmpty())
 				continue;
 
+			// カンマ区切り（簡易的）
 			String[] data = line.split(",");
-			if (data.length < 5)
+
+			// 4カラム以上あれば処理する (4カラム=自動採番, 5カラム=ID指定)
+			if (data.length < 4)
 				continue;
 
 			User user = new User();
-			user.setUserId(data[0].trim());
-			user.setLastName(data[1].trim());
-			user.setFirstName(data[2].trim());
-			user.setRole(data[3].trim()); // 役職
 
-			int gId = Integer.parseInt(data[4].trim());
-			user.setGroupId(gId);
+			if (data.length >= 5) {
+				// 5カラム: ID指定あり [ID, 姓, 名, 役職, グループID]
+				user.setUserId(data[0].trim());
+				user.setLastName(data[1].trim());
+				user.setFirstName(data[2].trim());
+				user.setRole(data[3].trim());
+				try {
+					user.setGroupId(Integer.parseInt(data[4].trim()));
+				} catch (NumberFormatException e) {
+					user.setGroupId(null);
+				}
+			} else {
+				// 4カラム: ID自動採番 [姓, 名, 役職, グループID]
+				// ID生成 (U00001形式)
+				String newId = String.format("U%05d", nextIdNum++);
+				user.setUserId(newId);
+
+				user.setLastName(data[0].trim());
+				user.setFirstName(data[1].trim());
+				user.setRole(data[2].trim());
+				try {
+					user.setGroupId(Integer.parseInt(data[3].trim()));
+				} catch (NumberFormatException e) {
+					user.setGroupId(null);
+				}
+			}
 
 			// --- 固定・自動設定ロジック ---
 
@@ -486,14 +512,21 @@ public class ApplicationServiceImpl implements ApplicationService {
 			user.setApprover(false);
 
 			// 3. 管理者フラグ：人事(311)または採用教育(312)なら true
-			if (gId == 311) {
+			if (user.getGroupId() != null && user.getGroupId() == 311) {
 				user.setAdmin(true);
 			} else {
 				user.setAdmin(false);
 			}
 
-			userRepository.save(user);
-			count++;
+			// ID重複チェック (自動採番でも念のため、指定ありなら必須)
+			if (!userRepository.existsById(user.getUserId())) {
+				userRepository.save(user);
+				count++;
+			} else {
+				// 既に存在する場合はスキップするか、Updateするか...
+				// ここではスキップとしますが、自動採番でここに来るのはレア(競合時)
+				// ID指定で重複した場合はスキップされます
+			}
 		}
 		return count;
 	}
@@ -501,6 +534,12 @@ public class ApplicationServiceImpl implements ApplicationService {
 	@Override
 	@Transactional
 	public void registerNewUser(User user) {
+		// IDが指定されていない場合は自動採番
+		if (user.getUserId() == null || user.getUserId().trim().isEmpty()) {
+			int nextId = calculateNextIdNumber();
+			user.setUserId(String.format("U%05d", nextId));
+		}
+
 		// 既にIDが存在するかチェック
 		if (userRepository.existsById(user.getUserId())) {
 			throw new RuntimeException("ユーザーID '" + user.getUserId() + "' は既に登録されています。");
@@ -512,6 +551,11 @@ public class ApplicationServiceImpl implements ApplicationService {
 		// 初回ログイン時にパスワード変更を強制するフラグなどがあればセット
 		// user.setMustChangePassword(true);
 
+		// グループIDによる権限自動設定 (CSVと同様)
+		if (user.getGroupId() != null && user.getGroupId() == 311) {
+			user.setAdmin(true);
+		}
+
 		userRepository.save(user);
 	}
 
@@ -520,6 +564,28 @@ public class ApplicationServiceImpl implements ApplicationService {
 	public void deleteUser(String userId) {
 		// 関連データの整合性を考慮しつつ削除（または論理削除）
 		userRepository.deleteById(userId);
+	}
+
+	/**
+	 * 現在の最大ID数値を取得して+1した値を返すヘルパー
+	 */
+	private int calculateNextIdNumber() {
+		int nextIdNum = 1;
+		List<User> allUsers = userRepository.findAll();
+		for (User u : allUsers) {
+			String uid = u.getUserId();
+			if (uid != null && uid.startsWith("U")) {
+				try {
+					int n = Integer.parseInt(uid.substring(1));
+					if (n >= nextIdNum) {
+						nextIdNum = n + 1;
+					}
+				} catch (NumberFormatException e) {
+					// Uで始まっていても数字でない場合は無視
+				}
+			}
+		}
+		return nextIdNum;
 	}
 
 }
