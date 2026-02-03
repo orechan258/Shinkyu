@@ -340,7 +340,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 
 		if (groupId != null) {
 			groupRepository.findById(groupId).ifPresent(group -> {
-				dto.setGroupName(group.getName());
+				dto.setGroupName(group.getGroupName());
 
 				if (group.getDepartment() != null) {
 					dto.setDepartmentName(group.getDepartment().getName());
@@ -420,13 +420,14 @@ public class ApplicationServiceImpl implements ApplicationService {
 				req.setCurrentFirstName(user.getFirstName());
 				// 現在のグループ名を取得
 				if (user.getGroupId() != null) {
-					groupRepository.findById(user.getGroupId()).ifPresent(g -> req.setCurrentGroupName(g.getName()));
+					groupRepository.findById(user.getGroupId())
+							.ifPresent(g -> req.setCurrentGroupName(g.getGroupName()));
 				}
 			});
 
 			// 変更後のグループ名も取得
 			if (req.getNewGroupId() != null) {
-				groupRepository.findById(req.getNewGroupId()).ifPresent(g -> req.setNewGroupName(g.getName()));
+				groupRepository.findById(req.getNewGroupId()).ifPresent(g -> req.setNewGroupName(g.getGroupName()));
 			}
 		}
 		return list;

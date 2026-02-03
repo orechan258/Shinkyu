@@ -113,7 +113,8 @@
                                                         class="form-check-input group-checkbox"
                                                         th:data-parent-dept="${dept.id}" th:value="${group.id}"
                                                         th:checked="${selectedGroupIds != null and selectedGroupIds.contains(group.id)}">
-                                                    <label class="form-check-label" th:text="${group.name}"></label>
+                                                    <label class="form-check-label"
+                                                        th:text="${group.groupName}"></label>
                                                 </div>
                                             </div>
                                         </div>

@@ -12,25 +12,31 @@ import com.example.demo.entity.Request;
 @Repository
 public interface RequestRepository extends JpaRepository<Request, Long> { // 主キーの型がLongと仮定
 
-    /**
-     * 申請者ユーザーID (String) に基づいて、該当ユーザーの全ての申請を取得する
-     */
-    List<Request> findByUserId(String userId); 
+	/**
+	 * 申請者ユーザーID (String) に基づいて、該当ユーザーの全ての申請を取得する
+	 */
+	List<Request> findByUserId(String userId);
 
-    /**
-     * 【JPQLで修正】承認者と同じグループに属するユーザーの申請を取得する
-     * Request EntityにはgroupIdがないため、User EntityとJOINするカスタムクエリを使用。
-     * 自身の申請 (r.userId != :userId) は除外する。
-     *
-     * @param groupId 承認者のグループID
-     * @param userId 承認者自身のユーザーID (自身の申請を除外するため)
-     */
-    @Query("SELECT r FROM Request r JOIN User u ON r.userId = u.userId WHERE u.groupId = :groupId AND r.userId != :userId AND r.Apply = 0")
-    List<Request> findAllRequestsByGroupExcludingUser(
-        @Param("groupId") Integer groupId, 
-        @Param("userId") String userId
-    );
+	/**
+	 * 【JPQLで修正】承認者と同じグループに属するユーザーの申請を取得する
+	 * Request EntityにはgroupIdがないため、User EntityとJOINするカスタムクエリを使用。
+	 * 自身の申請 (r.userId != :userId) は除外する。
+	 *
+	 * @param groupId 承認者のグループID
+	 * @param userId  承認者自身のユーザーID (自身の申請を除外するため)
+	 */
+	@Query("SELECT r FROM Request r JOIN User u ON r.userId = u.userId WHERE u.groupId = :groupId AND r.userId != :userId AND r.apply = 0")
+	List<Request> findAllRequestsByGroupExcludingUser(
+			@Param("groupId") Integer groupId,
+			@Param("userId") String userId);
 
-    // ⚠️ 以前エラーの原因となっていたメソッドは削除または名称変更が必要です。
-    // ❌ List<Request> findByUserGroupIdAndUserIdNot(Integer groupId, String userId); 
+	// ⚠️ 以前エラーの原因となっていたメソッドは削除または名称変更が必要です。
+	// ❌ List<Request> findByUserGroupIdAndUserIdNot(Integer groupId, String
+	// userId);
+
+	// 全社（グループ指定なし）＋ apply = 1
+	@Query("select r from Request r where r.apply = 1")
+	List<Request> findApproved();
+
+	List<Request> findByApply(Integer apply);
 }

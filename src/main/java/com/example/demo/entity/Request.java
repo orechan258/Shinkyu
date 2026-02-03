@@ -13,10 +13,10 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "request") 
+@Table(name = "request")
 public class Request {
 
-	@Id
+    @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "request_id")
     private Long requestId; // 主キーとして使用
@@ -24,43 +24,54 @@ public class Request {
     // 既存の user_id は、主キーではなく通常の申請者IDに戻す
     @Column(name = "user_id", length = 10) // ★@Idアノテーションを削除
     private String userId; // 申請者IDとして使用
-    
-    @Column(name = "start_date" ,length = 100)
+
+    @Column(name = "start_date", length = 100)
     private LocalDate startDate;
 
     @Column(name = "start_time")
     private LocalTime startTime;
-    
-    @Column(name = "end_date") 
+
+    @Column(name = "end_date")
     private LocalDate endDate;
-    
-    @Column(name = "end_time") 
+
+    @Column(name = "end_time")
     private LocalTime endTime;
-    
+
     @Column(name = "Reason") // MySQLのCREATE TABLEに合わせて大文字Rを維持
     private String reason;
-    
+
     @Column(name = "half_day")
     private Boolean halfDay;
-    
+
     @Column(name = "sp_apply") // ★修正: Hibernateが探すスネークケースに明示的に設定
     private Boolean spApply;
-    
+
     @Column(name = "Apply") // MySQLのCREATE TABLEに合わせて大文字Aを維持
-    private Integer Apply;
-    
-    @ManyToOne 
+    private Integer apply;
+
+    @ManyToOne
     @JoinColumn(name = "user_id", insertable = false, updatable = false)
     private User user;
-    
-    public Request() {}
-    
-    public Long getRequestId() { return requestId; }
-    public void setRequestId(Long requestId) { this.requestId = requestId; }
+
+    public Request() {
+    }
+
+    public Long getRequestId() {
+        return requestId;
+    }
+
+    public void setRequestId(Long requestId) {
+        this.requestId = requestId;
+    }
 
     // 既存の getId() / setId() は getUserId() / setUserId() にリネームすることを推奨
-    public String getUserId() { return userId; } 
-    public void setUserId(String userId) { this.userId = userId; }
+    public String getUserId() {
+        return userId;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
+    }
 
     public LocalDate getStartDate() {
         return startDate;
@@ -119,10 +130,10 @@ public class Request {
     }
 
     public Integer getApply() {
-        return Apply;
+        return apply;
     }
 
     public void setApply(Integer newStatus) {
-        this.Apply = newStatus;
+        this.apply = newStatus;
     }
 }

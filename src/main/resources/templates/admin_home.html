@@ -22,8 +22,78 @@
 
         <a th:href="@{/admin/applications}" class="main-button">プロフィール変更申請の管理</a>
 
-        <a th:href="@{/admin/csv-export}" class="main-button">CSV出力</a>
+        <a href="#" class="main-button" data-bs-toggle="modal" data-bs-target="#filterModal">
+            CSV出力
+        </a>
     </div>
+    <!-- CSV出力フォーム -->
+    <form th:action="@{/admin/export}" method="get">
+
+        <div class="modal fade" id="filterModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+
+                    <div class="modal-header bg-light">
+                        <h5 class="modal-title">所属で絞り込み（複数選択可）</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+
+                    <div class="modal-body">
+                        <div class="row">
+
+                            <!-- 部署ループ -->
+                            <div class="col-md-6 mb-4" th:each="dept : ${allDepartments}">
+
+                                <div class="card h-100 shadow-sm">
+
+                                    <!-- 部署チェック -->
+                                    <div class="card-header bg-white d-flex align-items-center">
+                                        <input type="checkbox" class="form-check-input me-2 dept-checkbox"
+                                            th:id="'dept-' + ${dept.id}" th:data-dept-id="${dept.id}">
+                                        <label class="fw-bold" th:for="'dept-' + ${dept.id}" th:text="${dept.name}">
+                                        </label>
+                                    </div>
+
+                                    <!-- グループ -->
+                                    <div class="card-body py-2">
+                                        <div class="form-check ms-3" th:each="group : ${allGroups}"
+                                            th:if="${group.departmentId} == ${dept.id}">
+
+                                            <input type="checkbox" class="form-check-input group-checkbox"
+                                                name="groupIds" th:id="'group-' + ${group.id}" th:value="${group.id}"
+                                                th:data-parent-dept="${dept.id}">
+
+                                            <label class="form-check-label" th:for="'group-' + ${group.id}"
+                                                th:text="${group.groupName}">
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-primary" id="selectAllDepartments">
+                            全部署を選択
+                        </button>
+
+                        <button type="button" class="btn btn-secondary" id="clearFilters">
+                            全選択解除
+                        </button>
+
+                        <button type="submit" class="btn btn-primary px-5">
+                            適用する
+                        </button>
+                    </div>
+
+
+                </div>
+            </div>
+        </div>
+    </form>
 
 
     <script>
@@ -31,8 +101,64 @@
             const menu = document.getElementById('menuPanel');
             menu.classList.toggle('open');
         }
+
+
+        document.addEventListener('DOMContentLoaded', function () {
+
+            // 部署 → グループ
+            document.querySelectorAll('.dept-checkbox').forEach(deptCheckbox => {
+                deptCheckbox.addEventListener('change', function () {
+                    const deptId = this.dataset.deptId;
+
+                    document.querySelectorAll(
+                        '.group-checkbox[data-parent-dept="' + deptId + '"]'
+                    ).forEach(groupCheckbox => {
+                        groupCheckbox.checked = this.checked;
+                    });
+                });
+            });
+
+            // グループ → 部署
+            document.querySelectorAll('.group-checkbox').forEach(groupCheckbox => {
+                groupCheckbox.addEventListener('change', function () {
+                    const deptId = this.dataset.parentDept;
+
+                    const groups = document.querySelectorAll(
+                        '.group-checkbox[data-parent-dept="' + deptId + '"]'
+                    );
+
+                    const deptCheckbox = document.querySelector(
+                        '.dept-checkbox[data-dept-id="' + deptId + '"]'
+                    );
+
+                    deptCheckbox.checked = Array.from(groups).some(cb => cb.checked);
+                });
+            });
+
+            // ✅ 全部署を一括選択
+            document.getElementById('selectAllDepartments').addEventListener('click', function () {
+
+                // 部署すべてON
+                document.querySelectorAll('.dept-checkbox').forEach(deptCheckbox => {
+                    deptCheckbox.checked = true;
+                });
+
+                // グループすべてON
+                document.querySelectorAll('.group-checkbox').forEach(groupCheckbox => {
+                    groupCheckbox.checked = true;
+                });
+            });
+
+            // 全選択解除
+            document.getElementById('clearFilters').addEventListener('click', function () {
+                document.querySelectorAll('.dept-checkbox, .group-checkbox')
+                    .forEach(cb => cb.checked = false);
+            });
+
+        });
     </script>
 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 
 </html>

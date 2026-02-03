@@ -29,7 +29,10 @@
                     <a th:href="@{/admin/users}">ユーザーマスタ管理</a>
                     <a th:href="@{/admin/roles}">権限管理画面</a>
                     <a th:href="@{/admin/applications}">プロフィール変更申請の管理</a>
-                    <a th:href="@{/admin/users/export}">CSV出力</a>
+                    <a href="#" data-bs-toggle="modal" data-bs-target="#filterModal">
+                        CSV出力
+                    </a>
+
                 </div>
             </div>
 
@@ -91,7 +94,68 @@
                 icon.style.transform = "rotate(0deg)";
             }
         }
+        function toggleMenu() {
+            const menu = document.getElementById('menuPanel');
+            menu.classList.toggle('open');
+        }
+
+
+        document.addEventListener('DOMContentLoaded', function () {
+
+            // 部署 → グループ
+            document.querySelectorAll('.dept-checkbox').forEach(deptCheckbox => {
+                deptCheckbox.addEventListener('change', function () {
+                    const deptId = this.dataset.deptId;
+
+                    document.querySelectorAll(
+                        '.group-checkbox[data-parent-dept="' + deptId + '"]'
+                    ).forEach(groupCheckbox => {
+                        groupCheckbox.checked = this.checked;
+                    });
+                });
+            });
+
+            // グループ → 部署
+            document.querySelectorAll('.group-checkbox').forEach(groupCheckbox => {
+                groupCheckbox.addEventListener('change', function () {
+                    const deptId = this.dataset.parentDept;
+
+                    const groups = document.querySelectorAll(
+                        '.group-checkbox[data-parent-dept="' + deptId + '"]'
+                    );
+
+                    const deptCheckbox = document.querySelector(
+                        '.dept-checkbox[data-dept-id="' + deptId + '"]'
+                    );
+
+                    deptCheckbox.checked = Array.from(groups).some(cb => cb.checked);
+                });
+            });
+
+            // ✅ 全部署を一括選択
+            document.getElementById('selectAllDepartments').addEventListener('click', function () {
+
+                // 部署すべてON
+                document.querySelectorAll('.dept-checkbox').forEach(deptCheckbox => {
+                    deptCheckbox.checked = true;
+                });
+
+                // グループすべてON
+                document.querySelectorAll('.group-checkbox').forEach(groupCheckbox => {
+                    groupCheckbox.checked = true;
+                });
+            });
+
+            // 全選択解除
+            document.getElementById('clearFilters').addEventListener('click', function () {
+                document.querySelectorAll('.dept-checkbox, .group-checkbox')
+                    .forEach(cb => cb.checked = false);
+            });
+
+        });
     </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
 </body>
 
 </html>

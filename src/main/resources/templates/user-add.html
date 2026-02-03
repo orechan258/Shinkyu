@@ -73,7 +73,7 @@
 												<optgroup th:label="${dept.name}">
 													<option th:each="group : ${allGroups}"
 														th:if="${group.department.id == dept.id}" th:value="${group.id}"
-														th:text="${group.name}"></option>
+														th:text="${group.groupName}"></option>
 												</optgroup>
 											</th:block>
 										</select>
