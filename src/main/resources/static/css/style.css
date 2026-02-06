@@ -9,7 +9,7 @@ body {
     margin: 0;
     padding: 0;
     font-family: "Meiryo", "Yu Gothic", "Helvetica", sans-serif;
-    background-color: #f0f2f5;
+    background-color: #f8f9fa;
     color: #333;
     /* Default is block layout (login page uses this or overrides it) */
 }
@@ -176,10 +176,7 @@ legend {
     /* 動きなし */
 }
 
-/* Admin分割ボタンとそのコンテナ */
-.admin-menu-wrapper {
-    /* 必要ならここに追加 */
-}
+
 
 .admin-split-btn {
     display: flex;

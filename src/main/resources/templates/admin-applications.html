@@ -1,21 +1,48 @@
 <!DOCTYPE html>
 <html lang="ja" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
 <head>
     <meta charset="UTF-8">
     <title>プロフィール申請管理 - 管理者</title>
-    <link rel="stylesheet" type="text/css" th:href="@{/css/style.css}">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/style.css}">
     <style>
-        .change-arrow { color: #aaa; margin: 0 10px; font-weight: bold; }
-        .new-value { color: #d9534f; font-weight: bold; background-color: #fff4f4; padding: 2px 6px; border-radius: 4px; border: 1px solid #f8d7da; }
-        .old-value { color: #888; text-decoration: line-through; font-size: 0.85em; }
-        .no-change { color: #333; font-size: 0.95em; }
-        .diff-container { display: flex; align-items: center; }
+        .change-arrow {
+            color: #aaa;
+            margin: 0 10px;
+            font-weight: bold;
+        }
+
+        .new-value {
+            color: #d9534f;
+            font-weight: bold;
+            background-color: #fff4f4;
+            padding: 2px 6px;
+            border-radius: 4px;
+            border: 1px solid #f8d7da;
+        }
+
+        .old-value {
+            color: #888;
+            text-decoration: line-through;
+            font-size: 0.85em;
+        }
+
+        .no-change {
+            color: #333;
+            font-size: 0.95em;
+        }
+
+        .diff-container {
+            display: flex;
+            align-items: center;
+        }
     </style>
 </head>
 <div th:replace="~{common :: menu}"></div>
 <script th:replace="~{common :: menuScript}"></script>
-<body class="bg-light">
+
+<body>
     <div class="container mt-5" style="max-width: 1100px;">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h1>プロフィール変更申請 承認</h1>
@@ -40,14 +67,18 @@
                         <tr th:each="req : ${pendingRequests}">
                             <td th:text="${req.userId}" class="fw-bold text-primary"></td>
                             <td th:text="${#temporals.format(req.createdAt, 'yyyy/MM/dd HH:mm')}"></td>
-                            
+
                             <td>
-                                <div th:if="${req.currentLastName != req.newLastName or req.currentFirstName != req.newFirstName}" class="diff-container">
-                                    <span class="old-value" th:text="${req.currentLastName} + ' ' + ${req.currentFirstName}"></span>
+                                <div th:if="${req.currentLastName != req.newLastName or req.currentFirstName != req.newFirstName}"
+                                    class="diff-container">
+                                    <span class="old-value"
+                                        th:text="${req.currentLastName} + ' ' + ${req.currentFirstName}"></span>
                                     <span class="change-arrow">➔</span>
-                                    <span class="new-value" th:text="${req.newLastName} + ' ' + ${req.newFirstName}"></span>
+                                    <span class="new-value"
+                                        th:text="${req.newLastName} + ' ' + ${req.newFirstName}"></span>
                                 </div>
-                                <div th:unless="${req.currentLastName != req.newLastName or req.currentFirstName != req.newFirstName}" class="no-change">
+                                <div th:unless="${req.currentLastName != req.newLastName or req.currentFirstName != req.newFirstName}"
+                                    class="no-change">
                                     <span th:text="${req.currentLastName} + ' ' + ${req.currentFirstName}"></span>
                                     <small class="text-muted ms-2">(変更なし)</small>
                                 </div>
@@ -69,15 +100,18 @@
                                 <form th:action="@{/admin/approve-profile-request}" method="post">
                                     <input type="hidden" name="requestId" th:value="${req.requestId}">
                                     <div class="btn-group">
-                                        <button type="submit" name="approved" value="true" class="btn btn-success px-3" onclick="return confirm('この内容でユーザー情報を更新しますか？')">承認</button>
-                                        <button type="submit" name="approved" value="false" class="btn btn-outline-danger" onclick="return confirm('この申請を却下しますか？')">却下</button>
+                                        <button type="submit" name="approved" value="true" class="btn btn-success px-3"
+                                            onclick="return confirm('この内容でユーザー情報を更新しますか？')">承認</button>
+                                        <button type="submit" name="approved" value="false"
+                                            class="btn btn-outline-danger"
+                                            onclick="return confirm('この申請を却下しますか？')">却下</button>
                                     </div>
                                 </form>
                             </td>
                         </tr>
-                        
+
                         <tr th:if="${#lists.isEmpty(pendingRequests)}">
-                            <td colspan="5" class="text-center py-5 text-muted bg-white">
+                            <td colspan="5" class="text-center py-5 text-muted">
                                 <i class="bi bi-info-circle me-2"></i>現在、未処理のプロフィール変更申請はありません。
                             </td>
                         </tr>
@@ -86,7 +120,8 @@
             </div>
         </div>
     </div>
-    
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
+
 </html>

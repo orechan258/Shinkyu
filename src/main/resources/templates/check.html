@@ -126,7 +126,6 @@
             <thead>
                 <tr>
                     <th>ステータス</th>
-                    <th>申請者氏名</th>
                     <th>開始日時</th>
                     <th>終了日時</th>
                     <th>理由</th>
@@ -138,7 +137,6 @@
                         <span th:if="${req.apply == 1}" style="color: green;">✅ 承認済み</span>
                         <span th:if="${req.apply == 2}" style="color: red;">❌ 却下</span>
                     </td>
-                    <td th:text="${req.applicantFullName}"></td>
                     <td th:text="${req.startDate} + ' ' + ${req.startTime}"></td>
                     <td th:text="${req.endDate} + ' ' + ${req.endTime}"></td>
                     <td th:text="${req.reason}"></td>
@@ -154,7 +152,6 @@
             <thead>
                 <tr>
                     <th>特認</th>
-                    <th>申請者氏名</th>
                     <th>開始日時</th>
                     <th>終了日時</th>
                     <th>理由</th>
@@ -163,7 +160,6 @@
             <tbody>
                 <tr th:each="req : ${expiredRequests}" class="expired">
                     <td><span th:if="${req.spApply != null and req.spApply}">✅</span></td>
-                    <td th:text="${req.applicantFullName}"></td>
                     <td th:text="${req.startDate} + ' ' + ${req.startTime}"></td>
                     <td th:text="${req.endDate} + ' ' + ${req.endTime}"></td>
                     <td th:text="${req.reason}"></td>

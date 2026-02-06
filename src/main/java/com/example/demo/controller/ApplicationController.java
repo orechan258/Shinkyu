@@ -1,5 +1,6 @@
 package com.example.demo.controller;
 
+import com.example.demo.exception.WeeklyLimitExceededException;
 import java.security.Principal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -14,8 +15,10 @@ import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.example.demo.entity.Request;
 import com.example.demo.repository.UserRepository;
@@ -202,7 +205,11 @@ public class ApplicationController {
     }
 
     @PostMapping("/request")
-    public String submitRequest(Request request, Authentication authentication) { // PrincipalからAuthenticationに変更
+    public String submitRequest(@ModelAttribute("request") Request request,
+            @RequestParam(required = false) boolean confirmed,
+            Authentication authentication,
+            RedirectAttributes ra,
+            Model model) {
 
         if (authentication != null) {
             String userId;
@@ -221,8 +228,18 @@ public class ApplicationController {
             request.setUserId("GUEST_01");
         }
 
-        applicationService.createNewRequest(request);
-        return "redirect:/finish";
+        try {
+            applicationService.createNewRequest(request, confirmed);
+            return "redirect:/finish";
+        } catch (WeeklyLimitExceededException e) {
+            model.addAttribute("warning", e.getMessage() + " 所属長に相談済みですか？");
+            model.addAttribute("needsConfirmation", true);
+            model.addAttribute("request", request);
+            return "request";
+        } catch (RuntimeException e) {
+            ra.addFlashAttribute("error", e.getMessage());
+            return "redirect:/request";
+        }
     }
 
     // --- 申請確認機能 (/check) ---

@@ -5,8 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>在宅勤務申請</title>
-    <link rel="stylesheet" type="text/css" th:href="@{/css/style.css}">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/style.css}">
 
     <style>
         /* request.html 固有の調整スタイル */
@@ -58,6 +58,18 @@
     <div class="application-form">
         <h1>在宅勤務申請フォーム</h1>
 
+        <!-- エラーメッセージ表示 -->
+        <div th:if="${error}" class="alert alert-danger"
+            style="background-color: #f8d7da; color: #721c24; padding: 12px; margin: 15px 0; border: 1px solid #f5c6cb; border-radius: 4px;">
+            <strong>エラー:</strong> <span th:text="${error}"></span>
+        </div>
+
+        <!-- 警告メッセージ表示 (上限超過時) -->
+        <div th:if="${warning}" class="alert alert-warning"
+            style="background-color: #fff3cd; color: #856404; padding: 12px; margin: 15px 0; border: 1px solid #ffeeba; border-radius: 4px;">
+            <strong>注意:</strong> <span th:text="${warning}"></span>
+        </div>
+
         <form th:action="@{/request}" method="post" th:object="${request}">
 
             <input type="hidden" th:field="*{requestId}" />
@@ -107,7 +119,19 @@
                 </div>
             </fieldset>
 
-            <button type="submit" class="submit-button">この内容で申請する</button>
+            <fieldset class="form-group" th:if="${needsConfirmation}">
+                <legend style="color: #856404;">追加確認</legend>
+                <div class="checkbox-container"
+                    style="background-color: #fff3cd; padding: 10px; border-radius: 8px; border: 1px solid #ffeeba;">
+                    <label for="confirmed" style="color: #856404; font-weight: bold;">
+                        <input type="checkbox" id="confirmed" name="confirmed" class="form-check-input" required>
+                        所属長に相談済みです
+                    </label>
+                </div>
+            </fieldset>
+
+            <button type="submit" class="submit-button"
+                th:text="${needsConfirmation} ? '重要事項を確認して申請する' : 'この内容で申請する'">この内容で申請する</button>
 
         </form>
     </div>
@@ -130,10 +154,13 @@
 
             // 開始日のmin属性に今日の日付を設定（過去日選択不可）
             startDateInput.setAttribute('min', todayStr);
+            if (!startDateInput.value) startDateInput.value = todayStr;
 
-            // 時間のデフォルト値を設定 (9:00 - 18:00)
-            document.getElementById('startTime').value = "09:00";
-            document.getElementById('endTime').value = "18:00";
+            // 時間のデフォルト値を設定 (値が空の場合のみ)
+            const startTimeInput = document.getElementById('startTime');
+            const endTimeInput = document.getElementById('endTime');
+            if (!startTimeInput.value) startTimeInput.value = "09:00";
+            if (!endTimeInput.value) endTimeInput.value = "18:00";
         });
     </script>
 </body>

@@ -1,5 +1,7 @@
 package com.example.demo.entity;
 
+import java.time.LocalDate;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -36,27 +38,31 @@ public class User {
 
     @Column(name = "is_admin")
     private boolean admin; // 管理者フラグ
-    
+
     @Column(name = "is_approver")
     private boolean approver; // 承認者フラグ
-    
+
     @Column(name = "email")
     private String email; // メールアドレス（Google連携用）
-    
+
     @Column(name = "group_id")
     private Integer groupId; // 所属グループID
+
+    @Column(name = "joining_date")
+    private LocalDate joiningDate; // 入社日
 
     // --- 表示用の補助フィールド（DBには保存せずプログラム内でのみ使用） ---
 
     @Transient
-    private String departmentName; 
+    private String departmentName;
 
     @Transient
     private String groupName;
 
     // --- コンストラクタ ---
 
-    public User() {}
+    public User() {
+    }
 
     // --- Getter and Setter ---
 
@@ -154,5 +160,13 @@ public class User {
 
     public void setGroupName(String groupName) {
         this.groupName = groupName;
+    }
+
+    public LocalDate getJoiningDate() {
+        return joiningDate;
+    }
+
+    public void setJoiningDate(LocalDate joiningDate) {
+        this.joiningDate = joiningDate;
     }
 }

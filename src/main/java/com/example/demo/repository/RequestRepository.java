@@ -1,5 +1,6 @@
 package com.example.demo.repository;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -39,4 +40,11 @@ public interface RequestRepository extends JpaRepository<Request, Long> { // 主
 	List<Request> findApproved();
 
 	List<Request> findByApply(Integer apply);
+
+	@Query("SELECT COUNT(r) FROM Request r WHERE r.userId = :userId AND r.startDate BETWEEN :start AND :end AND r.apply != 2")
+	long countByUserIdAndStartDateBetweenAndApplyNot(@Param("userId") String userId, @Param("start") LocalDate start,
+			@Param("end") LocalDate end);
+
+	List<Request> findByUserIdAndStartDateBetweenAndApplyNot(String userId, LocalDate start, LocalDate end,
+			Integer applyStatus);
 }

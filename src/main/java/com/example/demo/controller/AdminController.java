@@ -160,12 +160,13 @@ public class AdminController {
 	 */
 	@PostMapping("/roles/save")
 	public String saveAllRoles(
+			@RequestParam(name = "displayedUserIds", required = false) List<String> displayedIds,
 			@RequestParam(name = "approverStatus", required = false) List<String> approverList,
 			@RequestParam(name = "adminStatus", required = false) List<String> adminList,
 			RedirectAttributes ra) {
 
 		try {
-			applicationService.updateAllRoles(approverList, adminList);
+			applicationService.updateAllRoles(displayedIds, approverList, adminList);
 			ra.addFlashAttribute("message", "権限の設定を保存しました。");
 		} catch (Exception e) {
 			ra.addFlashAttribute("error", "保存中にエラーが発生しました。");

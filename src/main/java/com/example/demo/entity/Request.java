@@ -3,6 +3,8 @@ package com.example.demo.entity;
 import java.time.LocalDate;
 import java.time.LocalTime;
 
+import org.springframework.format.annotation.DateTimeFormat;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -26,15 +28,19 @@ public class Request {
     private String userId; // 申請者IDとして使用
 
     @Column(name = "start_date", length = 100)
+    @DateTimeFormat(pattern = "yyyy-MM-dd")
     private LocalDate startDate;
 
     @Column(name = "start_time")
+    @DateTimeFormat(pattern = "HH:mm")
     private LocalTime startTime;
 
     @Column(name = "end_date")
+    @DateTimeFormat(pattern = "yyyy-MM-dd")
     private LocalDate endDate;
 
     @Column(name = "end_time")
+    @DateTimeFormat(pattern = "HH:mm")
     private LocalTime endTime;
 
     @Column(name = "Reason") // MySQLのCREATE TABLEに合わせて大文字Rを維持

@@ -33,7 +33,7 @@
 	</style>
 </head>
 
-<body class="bg-light">
+<body>
 
 	<div th:replace="~{common :: menu}"></div>
 	<script th:replace="~{common :: menuScript}"></script>
@@ -50,9 +50,10 @@
 						<table class="table align-middle" id="userTable">
 							<thead>
 								<tr>
-									<th style="width: 30%;">姓</th>
-									<th style="width: 30%;">名</th>
-									<th style="width: 30%;">所属グループ</th>
+									<th style="width: 20%;">姓</th>
+									<th style="width: 20%;">名</th>
+									<th style="width: 25%;">所属グループ</th>
+									<th style="width: 25%;">入社日</th>
 									<th style="width: 10%;" class="text-center">削除</th>
 								</tr>
 							</thead>
@@ -77,6 +78,9 @@
 												</optgroup>
 											</th:block>
 										</select>
+									</td>
+									<td>
+										<input type="date" name="userList[0].joiningDate" class="form-control" required>
 									</td>
 									<td class="text-center">
 										<i class="bi bi-trash-fill remove-row d-none" onclick="removeRow(this)"></i>

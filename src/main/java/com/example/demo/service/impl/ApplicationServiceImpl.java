@@ -1,14 +1,16 @@
 package com.example.demo.service.impl;
 
+import com.example.demo.exception.WeeklyLimitExceededException;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Comparator;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
-import java.time.LocalDate; // ★追加
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
+import java.time.DayOfWeek;
+import java.time.temporal.TemporalAdjusters;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -153,19 +155,59 @@ public class ApplicationServiceImpl implements ApplicationService {
 
 	// ====================================================================
 	// 申請機能
-	// ... (省略: 既存のロジックを維持)
 	// ====================================================================
 
 	@Override
 	@Transactional
-	public Request createNewRequest(Request request) {
-		// 過去の日付チェック
+	public Request createNewRequest(Request request, boolean ignoreLimit) {
+		// 1. 基本チェック
 		if (request.getStartDate() != null && request.getStartDate().isBefore(LocalDate.now())) {
 			throw new RuntimeException("過去の日付で申請することはできません。");
 		}
-		// 終了日を開始日と同じに設定（画面入力を省略したため）
 		if (request.getStartDate() != null) {
 			request.setEndDate(request.getStartDate());
+
+			// 当日申請チェック：開始日が今日なら強制的に特認申請(spApply=true)にする
+			if (request.getStartDate().isEqual(LocalDate.now())) {
+				request.setSpApply(true);
+			}
+		}
+
+		// 2. 回数制限チェック (週の月曜日〜日曜日でカウント)
+		if (request.getUserId() != null && request.getStartDate() != null) {
+			User user = userRepository.findByUserId(request.getUserId()).orElse(null);
+			if (user != null) {
+				// 勤続年数の計算 (入社日から申請開始日まで)
+				long years = 3; // デフォルトは制限を緩く(3年)
+				if (user.getJoiningDate() != null) {
+					years = ChronoUnit.YEARS.between(user.getJoiningDate(), request.getStartDate());
+				}
+
+				// 制限回数の決定
+				int limit = (years >= 3) ? 2 : 1;
+
+				// 該当週（月〜日）の範囲を計算
+				LocalDate startOfWeek = request.getStartDate().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+				LocalDate endOfWeek = startOfWeek.plusDays(6);
+
+				// 既にある申請（却下以外）を取得して重みを計算
+				List<Request> existingRequests = requestRepository.findByUserIdAndStartDateBetweenAndApplyNot(
+						request.getUserId(), startOfWeek, endOfWeek, 2);
+
+				double currentWeight = existingRequests.stream()
+						.mapToDouble(r -> (r.getHalfDay() != null && r.getHalfDay()) ? 0.5 : 1.0)
+						.sum();
+
+				// 今回の申請の重み
+				double newWeight = (request.getHalfDay() != null && request.getHalfDay()) ? 0.5 : 1.0;
+
+				if (!ignoreLimit && currentWeight + newWeight > (double) limit) {
+					String tenureStr = (years >= 3) ? "3年以上" : "3年未満";
+					throw new WeeklyLimitExceededException(
+							String.format("在宅勤務の週上限に達しています。 (勤続%s: 週%d回まで / 現在の申請数: %.1f)",
+									tenureStr, limit, currentWeight));
+				}
+			}
 		}
 
 		return requestRepository.save(request);
@@ -223,18 +265,23 @@ public class ApplicationServiceImpl implements ApplicationService {
 
 	@Override
 	@Transactional
-	public void updateApprovalStatus(Long requestId, boolean approved) {
+	public void updateApprovalStatus(Long requestId, boolean approved, String approverId) {
 		if (requestId == null) {
 			throw new IllegalArgumentException("申請IDが指定されていません。");
 		}
 		// 1. 申請データを取得
 		Request req = requestRepository.findById(requestId).orElseThrow();
 
-		// 2. ステータス更新 (1:承認, 2:却下)
+		// 2. 自己承認チェック
+		if (req.getUserId().equals(approverId)) {
+			throw new SecurityException("自身の申請は承認できません。");
+		}
+
+		// 3. ステータス更新 (1:承認, 2:却下)
 		req.setApply(approved ? 1 : 2);
 		requestRepository.save(req);
 
-		// 3. 承認された場合のみ、Outlookに飛ばす
+		// 4. 承認された場合のみ、Outlookに飛ばす
 		/*
 		 * キャンセル
 		 * if (approved) {
@@ -249,6 +296,14 @@ public class ApplicationServiceImpl implements ApplicationService {
 	@Override
 	public List<Request> findAll() {
 		return requestRepository.findAll();
+	}
+
+	@Override
+	public List<RequestDetailDto> findAllWithNames() {
+		return requestRepository.findAll().stream()
+				.map(this::mapEntityToRequestDetailDto)
+				.filter(RequestDetailDto::isUserExists) // ユーザーが存在するものだけを表示
+				.collect(Collectors.toList());
 	}
 
 	// ====================================================================
@@ -276,19 +331,14 @@ public class ApplicationServiceImpl implements ApplicationService {
 
 	@Override
 	@Transactional
-	public void updateAllRoles(List<String> approverList, List<String> adminList) {
-		// 1. 画面から送られてきたIDたちを合体させて「今回更新対象の全ID」を作る
-		Set<String> targetUserIds = new HashSet<>();
-		if (approverList != null)
-			targetUserIds.addAll(approverList);
-		if (adminList != null)
-			targetUserIds.addAll(adminList);
-
-		// 2. 更新対象のユーザーだけをDBから持ってくる（対象外の人は触らない！）
-		if (targetUserIds.isEmpty())
+	public void updateAllRoles(List<String> displayedUserIds, List<String> approverList, List<String> adminList) {
+		// 1. 今回画面に表示されていた全ユーザーのIDを対象とする
+		if (displayedUserIds == null || displayedUserIds.isEmpty())
 			return;
 
-		List<User> targetUsers = userRepository.findAllById(targetUserIds);
+		// 2. 更新対象のユーザーをDBから持ってくる
+
+		List<User> targetUsers = userRepository.findAllById(displayedUserIds);
 
 		for (User user : targetUsers) {
 			boolean isApprover = approverList != null && approverList.contains(user.getUserId());
@@ -315,6 +365,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 		// 新しいパスワードをハッシュ化して保存
 		String hashedNewPassword = passwordEncoder.encode(newPassword);
 		user.setPassword(hashedNewPassword);
+		user.setMustChangePassword(false); // パスワード変更済みフラグを解除
 		userRepository.save(user);
 
 		return true;
@@ -389,8 +440,12 @@ public class ApplicationServiceImpl implements ApplicationService {
 		}
 
 		// 申請者氏名の結合
-		userRepository.findByUserId(request.getUserId()).ifPresent(user -> {
+		userRepository.findByUserId(request.getUserId()).ifPresentOrElse(user -> {
 			dto.setApplicantFullName(user.getLastName() + " " + user.getFirstName());
+			dto.setUserExists(true);
+		}, () -> {
+			dto.setApplicantFullName("不明なユーザー");
+			dto.setUserExists(false);
 		});
 
 		return dto;
@@ -490,7 +545,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 			User user = new User();
 
 			if (data.length >= 5) {
-				// 5カラム: ID指定あり [ID, 姓, 名, 役職, グループID]
+				// 5カラム以上: ID指定あり [ID, 姓, 名, 役職, グループID, (入社日)]
 				user.setUserId(data[0].trim());
 				user.setLastName(data[1].trim());
 				user.setFirstName(data[2].trim());
@@ -500,10 +555,18 @@ public class ApplicationServiceImpl implements ApplicationService {
 				} catch (NumberFormatException e) {
 					user.setGroupId(null);
 				}
+				// 入社日 (オプション)
+				if (data.length >= 6) {
+					try {
+						user.setJoiningDate(LocalDate.parse(data[5].trim()));
+					} catch (Exception e) {
+						user.setJoiningDate(null);
+					}
+				}
 			} else {
-				// 4カラム: ID自動採番 [姓, 名, 役職, グループID]
-				// ID生成 (U00001形式)
-				String newId = String.format("U%05d", nextIdNum++);
+				// 4カラム: ID自動採番 [姓, 名, 役職, グループID, (入社日)]
+				// ID生成 (T00001形式)
+				String newId = String.format("T%05d", nextIdNum++);
 				user.setUserId(newId);
 
 				user.setLastName(data[0].trim());
@@ -514,12 +577,21 @@ public class ApplicationServiceImpl implements ApplicationService {
 				} catch (NumberFormatException e) {
 					user.setGroupId(null);
 				}
+				// 入社日 (オプション)
+				if (data.length >= 5) {
+					try {
+						user.setJoiningDate(LocalDate.parse(data[4].trim()));
+					} catch (Exception e) {
+						user.setJoiningDate(null);
+					}
+				}
 			}
 
 			// --- 固定・自動設定ロジック ---
 
 			// 1. パスワードは一律 "password" で初期化
 			user.setPassword(passwordEncoder.encode("password"));
+			user.setMustChangePassword(true); // CSVインポートユーザーも変更強制
 
 			// 2. 承認者フラグ：いったん全員 false
 			user.setApprover(false);
@@ -550,7 +622,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 		// IDが指定されていない場合は自動採番
 		if (user.getUserId() == null || user.getUserId().trim().isEmpty()) {
 			int nextId = calculateNextIdNumber();
-			user.setUserId(String.format("U%05d", nextId));
+			user.setUserId(String.format("T%05d", nextId));
 		}
 
 		// 既にIDが存在するかチェック
@@ -561,8 +633,8 @@ public class ApplicationServiceImpl implements ApplicationService {
 		// 初期パスワードをユーザーIDと同じに設定してハッシュ化
 		user.setPassword(passwordEncoder.encode(user.getUserId()));
 
-		// 初回ログイン時にパスワード変更を強制するフラグなどがあればセット
-		// user.setMustChangePassword(true);
+		// 初回ログイン時にパスワード変更を強制する
+		user.setMustChangePassword(true);
 
 		// グループIDによる権限自動設定 (CSVと同様)
 		if (user.getGroupId() != null && user.getGroupId() == 311) {
@@ -589,14 +661,14 @@ public class ApplicationServiceImpl implements ApplicationService {
 		List<User> allUsers = userRepository.findAll();
 		for (User u : allUsers) {
 			String uid = u.getUserId();
-			if (uid != null && uid.startsWith("U")) {
+			if (uid != null && (uid.startsWith("U") || uid.startsWith("T"))) {
 				try {
 					int n = Integer.parseInt(uid.substring(1));
 					if (n >= nextIdNum) {
 						nextIdNum = n + 1;
 					}
 				} catch (NumberFormatException e) {
-					// Uで始まっていても数字でない場合は無視
+					// UまたはTで始まっていても数字でない場合は無視
 				}
 			}
 		}
